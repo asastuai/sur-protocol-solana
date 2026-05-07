@@ -1,11 +1,11 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::DarkPoolError;
-use crate::events::{A2ATradeSettled, ReputationUpdated, SettlementPreviewMode};
+use crate::events::{A2ATradeSettled, ReputationUpdated};
 use crate::state::*;
 
 // ============================================================
-//                    ACCEPT + SETTLE
+//                    ACCEPT + SETTLE (v0.2 — CPIs WIRED)
 // ============================================================
 // Solidity: function acceptAndSettle(intentId, responseId)
 //   - intent creator accepts a pending response
@@ -14,22 +14,17 @@ use crate::state::*;
 //   - updates reputation for both agents
 //   - emits A2ATradeSettled
 //
-// Solidity also uses nonReentrant (transient storage) and CEI ordering.
-// Anchor: Solana forbids direct CPI reentrancy by default — no guard needed.
-// CEI ordering is preserved manually below.
+// Anchor: darkpool signs CPIs as `darkpool_authority` PDA (seed
+// `["darkpool_authority"]`). The PDA must be pre-registered as an operator
+// in BOTH perp_vault and perp_engine.
 //
-// CPI INTEGRATION POINTS (currently stubs — see ARCHITECTURE.md):
-//   1) perp_engine::open_position(market_id, buyer, +size, price)
-//   2) perp_engine::open_position(market_id, seller, -size, price)
-//   3) perp_vault::internal_transfer(buyer, fee_recipient, fee)
-//   4) perp_vault::internal_transfer(seller, fee_recipient, fee)
-//
-// Until those programs are ported, this instruction:
-//   - flips Intent + Response statuses
-//   - computes the same fee that would be charged
-//   - updates reputation
-//   - emits A2ATradeSettled with the agreed terms
-// so SDKs and indexers see the trade as settled. Wire CPIs at v0.2.
+// CPI ORDER (CEI: status flips first, then external calls):
+//   1) status flips on intent + response
+//   2) perp_engine::open_position(buyer, +size, price)
+//   3) perp_engine::open_position(seller, -size, price)
+//   4) perp_vault::internal_transfer(buyer  -> fee_recipient, fee)
+//   5) perp_vault::internal_transfer(seller -> fee_recipient, fee)
+//   6) reputation update + event emission
 
 #[derive(Accounts)]
 pub struct AcceptAndSettle<'info> {
@@ -71,9 +66,56 @@ pub struct AcceptAndSettle<'info> {
     )]
     pub responder_reputation: Account<'info, AgentReputation>,
 
+    #[account(mut)]
     pub intent_creator: Signer<'info>,
-    // CPI accounts for perp_engine + perp_vault programs are added when
-    // those programs land. Keeping the surface minimal until then.
+
+    /// CHECK: darkpool_authority PDA — signs CPIs to engine + vault.
+    /// Must be pre-registered as operator on both.
+    #[account(
+        seeds = [b"darkpool_authority"],
+        bump,
+    )]
+    pub darkpool_authority: UncheckedAccount<'info>,
+
+    // ========== perp_engine CPI accounts ==========
+    /// CHECK: perp_engine program id.
+    pub perp_engine_program: UncheckedAccount<'info>,
+    /// CHECK: engine_config PDA (validated by perp_engine).
+    pub engine_config: UncheckedAccount<'info>,
+    /// CHECK: market PDA matching intent.market_id.
+    #[account(mut)]
+    pub engine_market: UncheckedAccount<'info>,
+    /// CHECK: buyer's position PDA (init_if_needed at engine).
+    #[account(mut)]
+    pub buyer_position: UncheckedAccount<'info>,
+    /// CHECK: seller's position PDA (init_if_needed at engine).
+    #[account(mut)]
+    pub seller_position: UncheckedAccount<'info>,
+    /// CHECK: buyer pubkey identity reference.
+    pub buyer_trader: UncheckedAccount<'info>,
+    /// CHECK: seller pubkey identity reference.
+    pub seller_trader: UncheckedAccount<'info>,
+    /// CHECK: engine operator PDA for darkpool_authority.
+    pub engine_operator_account: UncheckedAccount<'info>,
+
+    // ========== perp_vault CPI accounts ==========
+    /// CHECK: perp_vault program id.
+    pub perp_vault_program: UncheckedAccount<'info>,
+    /// CHECK: vault_config PDA.
+    pub vault_config: UncheckedAccount<'info>,
+    /// CHECK: vault operator PDA for darkpool_authority.
+    pub vault_operator_account: UncheckedAccount<'info>,
+    /// CHECK: buyer's vault balance PDA.
+    #[account(mut)]
+    pub buyer_balance: UncheckedAccount<'info>,
+    /// CHECK: seller's vault balance PDA.
+    #[account(mut)]
+    pub seller_balance: UncheckedAccount<'info>,
+    /// CHECK: fee_recipient's vault balance PDA.
+    #[account(mut)]
+    pub fee_recipient_balance: UncheckedAccount<'info>,
+
+    pub system_program: Program<'info, System>,
 }
 
 pub(crate) fn handler(ctx: Context<AcceptAndSettle>) -> Result<()> {
@@ -94,8 +136,7 @@ pub(crate) fn handler(ctx: Context<AcceptAndSettle>) -> Result<()> {
         DarkPoolError::ResponseExpired
     );
 
-    // Snapshot pre-mutation values so we can use them in events + math
-    // without borrow conflicts.
+    // Snapshot pre-mutation values.
     let buyer = if intent.is_buy { intent.agent } else { response.agent };
     let seller = if intent.is_buy { response.agent } else { intent.agent };
     let price = response.price;
@@ -107,60 +148,120 @@ pub(crate) fn handler(ctx: Context<AcceptAndSettle>) -> Result<()> {
     let intent_agent = intent.agent;
     let responder_agent = response.agent;
 
-    // ---- CEI: update statuses BEFORE external calls ----
+    // Validate buyer/seller account params match the resolved sides.
+    require!(
+        ctx.accounts.buyer_trader.key() == buyer,
+        DarkPoolError::SelfTrade // reuse error variant; account mismatch
+    );
+    require!(
+        ctx.accounts.seller_trader.key() == seller,
+        DarkPoolError::SelfTrade
+    );
+
+    // ---- CEI: status flips BEFORE external calls ----
     intent.status = IntentStatus::Filled;
     intent.filled_response_id = response_id;
     response.status = ResponseStatus::Accepted;
 
-    // ========================================================================
-    // CPI STUB #1 — atomic position opening via perp_engine
-    // ========================================================================
-    // Solidity:
-    //   engine.openPosition(intent.marketId, buyer,  int256(size), price);
-    //   engine.openPosition(intent.marketId, seller, -int256(size), price);
-    //
-    // When perp_engine is ported, replace this block with:
-    //
-    //   let cpi_ctx = CpiContext::new(
-    //       ctx.accounts.perp_engine_program.to_account_info(),
-    //       perp_engine::cpi::accounts::OpenPosition { /* ... */ },
-    //   );
-    //   perp_engine::cpi::open_position(cpi_ctx, market_id, buyer, size as i64, price)?;
-    //   ... and the same for seller with -size ...
-    //
-    // CRITICAL: keep this atomic. If either CPI fails, the entire tx must
-    // revert. Solana gives this guarantee for free — no nonReentrant guard
-    // needed (the runtime forbids reentrancy by default on direct CPI loops).
-    // ========================================================================
-
-    // ========================================================================
-    // CPI STUB #2 — fee collection via perp_vault
-    // ========================================================================
-    // Solidity (H-11 fix: AFTER positions opened, using fee_bps_at_post):
-    //   uint256 notional = (price * size) / SIZE_PRECISION;
-    //   uint256 feePerSide = (notional * intent.feeBpsAtPost) / BPS;
-    //   vault.internalTransfer(buyer,  feeRecipient, feePerSide);
-    //   vault.internalTransfer(seller, feeRecipient, feePerSide);
-    // ========================================================================
+    // ---- Compute notional + fee ----
     let notional_u128 = (price as u128)
         .checked_mul(size as u128)
         .ok_or(DarkPoolError::MathOverflow)?
         / SIZE_PRECISION as u128;
-
     let fee_per_side_u128 = notional_u128
         .checked_mul(fee_bps_at_post as u128)
         .ok_or(DarkPoolError::MathOverflow)?
         / BPS as u128;
-
-    // TODO(perp_vault): CPI two internalTransfer calls here.
-    // Until then, fee_per_side_u128 is published in SettlementPreviewMode
-    // event so the indexer can compute the would-be fee for analytics.
-
+    let fee_per_side: u64 = fee_per_side_u128
+        .try_into()
+        .map_err(|_| DarkPoolError::MathOverflow)?;
     let notional: u64 = notional_u128
         .try_into()
         .map_err(|_| DarkPoolError::MathOverflow)?;
 
-    // ---- Update reputation for both agents ----
+    // ---- darkpool_authority signer seeds ----
+    let auth_bump = ctx.bumps.darkpool_authority;
+    let auth_seeds: &[&[u8]] = &[b"darkpool_authority", &[auth_bump]];
+    let signer_seeds = &[auth_seeds];
+
+    // ---- CPI #1: engine.open_position(buyer, +size, price) ----
+    let buyer_size_delta: i64 = i64::try_from(size).map_err(|_| DarkPoolError::MathOverflow)?;
+    {
+        let cpi_accounts = perp_engine::cpi::accounts::OpenPosition {
+            engine_config: ctx.accounts.engine_config.to_account_info(),
+            market: ctx.accounts.engine_market.to_account_info(),
+            position: ctx.accounts.buyer_position.to_account_info(),
+            trader: ctx.accounts.buyer_trader.to_account_info(),
+            operator_account: ctx.accounts.engine_operator_account.to_account_info(),
+            operator: ctx.accounts.darkpool_authority.to_account_info(),
+            payer: ctx.accounts.intent_creator.to_account_info(),
+            system_program: ctx.accounts.system_program.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.perp_engine_program.to_account_info(),
+            cpi_accounts,
+            signer_seeds,
+        );
+        perp_engine::cpi::open_position(cpi_ctx, buyer_size_delta, price)?;
+    }
+
+    // ---- CPI #2: engine.open_position(seller, -size, price) ----
+    {
+        let cpi_accounts = perp_engine::cpi::accounts::OpenPosition {
+            engine_config: ctx.accounts.engine_config.to_account_info(),
+            market: ctx.accounts.engine_market.to_account_info(),
+            position: ctx.accounts.seller_position.to_account_info(),
+            trader: ctx.accounts.seller_trader.to_account_info(),
+            operator_account: ctx.accounts.engine_operator_account.to_account_info(),
+            operator: ctx.accounts.darkpool_authority.to_account_info(),
+            payer: ctx.accounts.intent_creator.to_account_info(),
+            system_program: ctx.accounts.system_program.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.perp_engine_program.to_account_info(),
+            cpi_accounts,
+            signer_seeds,
+        );
+        perp_engine::cpi::open_position(cpi_ctx, -buyer_size_delta, price)?;
+    }
+
+    // ---- CPI #3: vault.internal_transfer(buyer -> fee_recipient, fee) ----
+    if fee_per_side > 0 {
+        {
+            let cpi_accounts = perp_vault::cpi::accounts::InternalTransfer {
+                vault_config: ctx.accounts.vault_config.to_account_info(),
+                operator_account: ctx.accounts.vault_operator_account.to_account_info(),
+                from_balance: ctx.accounts.buyer_balance.to_account_info(),
+                to_balance: ctx.accounts.fee_recipient_balance.to_account_info(),
+                operator: ctx.accounts.darkpool_authority.to_account_info(),
+            };
+            let cpi_ctx = CpiContext::new_with_signer(
+                ctx.accounts.perp_vault_program.to_account_info(),
+                cpi_accounts,
+                signer_seeds,
+            );
+            perp_vault::cpi::internal_transfer(cpi_ctx, fee_per_side)?;
+        }
+
+        // ---- CPI #4: vault.internal_transfer(seller -> fee_recipient, fee) ----
+        {
+            let cpi_accounts = perp_vault::cpi::accounts::InternalTransfer {
+                vault_config: ctx.accounts.vault_config.to_account_info(),
+                operator_account: ctx.accounts.vault_operator_account.to_account_info(),
+                from_balance: ctx.accounts.seller_balance.to_account_info(),
+                to_balance: ctx.accounts.fee_recipient_balance.to_account_info(),
+                operator: ctx.accounts.darkpool_authority.to_account_info(),
+            };
+            let cpi_ctx = CpiContext::new_with_signer(
+                ctx.accounts.perp_vault_program.to_account_info(),
+                cpi_accounts,
+                signer_seeds,
+            );
+            perp_vault::cpi::internal_transfer(cpi_ctx, fee_per_side)?;
+        }
+    }
+
+    // ---- Reputation update ----
     update_reputation(
         &mut ctx.accounts.intent_creator_reputation,
         intent_agent,
@@ -183,19 +284,6 @@ pub(crate) fn handler(ctx: Context<AcceptAndSettle>) -> Result<()> {
         size,
         price,
         timestamp: clock.unix_timestamp,
-    });
-
-    // ---- Preview-mode marker (v0.1 only — remove in v0.2 when CPIs land) ----
-    // Indexers MUST treat this paired marker as a signal that the trade did
-    // NOT actually open positions or move fees. Filter or flag accordingly.
-    let fee_uncollected: u64 = fee_per_side_u128
-        .try_into()
-        .map_err(|_| DarkPoolError::MathOverflow)?;
-    emit!(SettlementPreviewMode {
-        intent_id,
-        response_id,
-        fee_per_side_uncollected: fee_uncollected,
-        note: String::from("v0.1 preview: perp_engine + perp_vault CPIs not wired"),
     });
 
     Ok(())

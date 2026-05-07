@@ -36,7 +36,7 @@ pub struct OpenPosition<'info> {
 
     #[account(
         init_if_needed,
-        payer = operator,
+        payer = payer,
         space = Position::SIZE,
         seeds = [Position::SEED_PREFIX, &market.market_id, trader.key().as_ref()],
         bump,
@@ -54,8 +54,13 @@ pub struct OpenPosition<'info> {
     )]
     pub operator_account: Account<'info, Operator>,
 
-    #[account(mut)]
     pub operator: Signer<'info>,
+
+    /// Pays rent for new position PDAs. Decoupled from `operator` so the
+    /// authority signing CPIs (which may be a PDA without lamports) doesn't
+    /// need to fund position rent — a user-side signer can.
+    #[account(mut)]
+    pub payer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }
