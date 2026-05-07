@@ -178,11 +178,12 @@ describe("insurance_fund", () => {
       }
     }
 
-    // Final attempt — should be rejected by daily cap.
+    // Final attempt of $1K — exceeds remaining daily budget (≈$900 left
+    // after loop), should revert.
     let threw = false;
     try {
       await program.methods
-        .payKeeperReward(keeper2.publicKey, new anchor.BN(500 * 1_000_000))
+        .payKeeperReward(keeper2.publicKey, new anchor.BN(1_000 * 1_000_000))
         .accounts({
           config: configPda,
           operatorAccount: operatorPda,
