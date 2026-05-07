@@ -36,4 +36,5 @@ members = [
   "programs/perp_engine",
   "programs/sur_timelock",
   "programs/liquidator",
+  "programs/insurance_fund",
 ]

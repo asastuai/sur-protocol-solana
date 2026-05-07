@@ -1,0 +1,21 @@
+[package]
+name = "insurance_fund"
+version = "0.1.0"
+description = "SUR Protocol — InsuranceFund. Tracks cumulative bad debt + governs keeper rewards. Solana port of InsuranceFund.sol."
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "insurance_fund"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+idl-build = ["anchor-lang/idl-build"]
+anchor-debug = []
+
+[dependencies]
+anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
