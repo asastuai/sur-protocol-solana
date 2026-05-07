@@ -9,6 +9,8 @@ oracle_router = "CC5Xc5DTyLSfcw3MiXbyJQyRA21mh3Shup6bgMH8WGSS"
 perp_engine = "Cwpbe4mwgFdnhwhoRBGBzUerQa52cJMqXWjG3wGvYFW8"
 sur_timelock = "9FeQoWChgaRqvKJGqjTmVvpF7jQ4Ph7zgSsrkA4NnwAF"
 liquidator = "9APXqgHS7aNtYsjDE1SJ6PiboJPSyv2QhG9SmLaCzg2R"
+insurance_fund = "A9TY4wcr6Buzrac5XLC5aQvz4wWyYjQSogsVBvS3eKPp"
+auto_deleveraging = "F12KjhGRyiEbM629MHookPFar7xsbfbfafoZjuBmCTDz"
 
 [programs.devnet]
 a2a_darkpool = "BVrt7REAZoCZBEY987fUPEjn2EvnXyaFzpMPVXb81rnq"
@@ -17,6 +19,8 @@ oracle_router = "CC5Xc5DTyLSfcw3MiXbyJQyRA21mh3Shup6bgMH8WGSS"
 perp_engine = "Cwpbe4mwgFdnhwhoRBGBzUerQa52cJMqXWjG3wGvYFW8"
 sur_timelock = "9FeQoWChgaRqvKJGqjTmVvpF7jQ4Ph7zgSsrkA4NnwAF"
 liquidator = "9APXqgHS7aNtYsjDE1SJ6PiboJPSyv2QhG9SmLaCzg2R"
+insurance_fund = "A9TY4wcr6Buzrac5XLC5aQvz4wWyYjQSogsVBvS3eKPp"
+auto_deleveraging = "F12KjhGRyiEbM629MHookPFar7xsbfbfafoZjuBmCTDz"
 
 [registry]
 url = "https://api.apr.dev"
