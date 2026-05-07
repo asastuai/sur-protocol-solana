@@ -104,13 +104,14 @@ describe("oracle_router", () => {
   });
 
   it("pushes initial price ($50,000)", async () => {
-    const now = Math.floor(Date.now() / 1000);
+    const slot = await provider.connection.getSlot();
+    const ts = (await provider.connection.getBlockTime(slot)) || Math.floor(Date.now() / 1000);
     await program.methods
       .pushPrice(
         new anchor.BN(50_000_000_000), // mark_price
         new anchor.BN(50_000_000_000), // index_price
         0,                              // source = Pyth
-        new anchor.BN(now),             // publish_timestamp
+        new anchor.BN(ts - 1),          // publish_timestamp (1s ago — safe vs validator clock)
         new anchor.BN(50),              // confidence_bps = 0.5%
       )
       .accounts({
@@ -127,13 +128,14 @@ describe("oracle_router", () => {
   });
 
   it("pushes price within max change ($51,000 = 2%)", async () => {
-    const now = Math.floor(Date.now() / 1000);
+    const slot = await provider.connection.getSlot();
+    const ts = (await provider.connection.getBlockTime(slot)) || Math.floor(Date.now() / 1000);
     await program.methods
       .pushPrice(
         new anchor.BN(51_000_000_000),
         new anchor.BN(51_000_000_000),
         0,
-        new anchor.BN(now),
+        new anchor.BN(ts - 1),
         new anchor.BN(50),
       )
       .accounts({
@@ -150,14 +152,15 @@ describe("oracle_router", () => {
   });
 
   it("triggers circuit breaker on >10% price move", async () => {
-    const now = Math.floor(Date.now() / 1000);
+    const slot = await provider.connection.getSlot();
+    const ts = (await provider.connection.getBlockTime(slot)) || Math.floor(Date.now() / 1000);
     // 51000 -> 60000 = ~16% change, exceeds max_price_change_bps=1000 (10%)
     await program.methods
       .pushPrice(
         new anchor.BN(60_000_000_000),
         new anchor.BN(60_000_000_000),
         0,
-        new anchor.BN(now),
+        new anchor.BN(ts - 1),
         new anchor.BN(50),
       )
       .accounts({
@@ -196,13 +199,14 @@ describe("oracle_router", () => {
 
     let threw = false;
     try {
-      const now = Math.floor(Date.now() / 1000);
+      const slot = await provider.connection.getSlot();
+      const ts = (await provider.connection.getBlockTime(slot)) || Math.floor(Date.now() / 1000);
       await program.methods
         .pushPrice(
           new anchor.BN(51_500_000_000),
           new anchor.BN(51_500_000_000),
           0,
-          new anchor.BN(now),
+          new anchor.BN(ts - 1),
           new anchor.BN(50),
         )
         .accounts({
@@ -233,7 +237,9 @@ describe("oracle_router", () => {
   });
 
   it("rejects stale price (publish_timestamp older than max)", async () => {
-    const old = Math.floor(Date.now() / 1000) - 120; // 120s old, max=60
+    const slot = await provider.connection.getSlot();
+    const ts = (await provider.connection.getBlockTime(slot)) || Math.floor(Date.now() / 1000);
+    const old = ts - 120; // 120s old, max=60
     let threw = false;
     try {
       await program.methods
