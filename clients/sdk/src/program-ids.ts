@@ -12,6 +12,5 @@ export const SUR_PROGRAM_IDS = {
   perp_vault: new PublicKey("FpbuRBF3RiAkpD3k8XccnoYH99W5g9R59aRd3jRZTBfU"),
   oracle_router: new PublicKey("CC5Xc5DTyLSfcw3MiXbyJQyRA21mh3Shup6bgMH8WGSS"),
   perp_engine: new PublicKey("Cwpbe4mwgFdnhwhoRBGBzUerQa52cJMqXWjG3wGvYFW8"),
-  // sur_timelock: real ID lands after first cargo-build-sbf — placeholder until v0.3.
-  sur_timelock: new PublicKey("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"),
+  sur_timelock: new PublicKey("9FeQoWChgaRqvKJGqjTmVvpF7jQ4Ph7zgSsrkA4NnwAF"),
 } as const;
