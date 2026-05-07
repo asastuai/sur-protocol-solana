@@ -37,4 +37,5 @@ members = [
   "programs/sur_timelock",
   "programs/liquidator",
   "programs/insurance_fund",
+  "programs/auto_deleveraging",
 ]

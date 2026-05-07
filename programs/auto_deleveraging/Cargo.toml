@@ -1,0 +1,21 @@
+[package]
+name = "auto_deleveraging"
+version = "0.1.0"
+description = "SUR Protocol — ADL last-resort mechanism. Forcibly reduces profitable positions when insurance fund insufficient. Solana port of AutoDeleveraging.sol with manual invoke_signed CPI to perp_engine.open_position."
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "auto_deleveraging"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+idl-build = ["anchor-lang/idl-build"]
+anchor-debug = []
+
+[dependencies]
+anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
