@@ -5,10 +5,12 @@ skip-lint = false
 [programs.localnet]
 a2a_darkpool = "BVrt7REAZoCZBEY987fUPEjn2EvnXyaFzpMPVXb81rnq"
 perp_vault = "FpbuRBF3RiAkpD3k8XccnoYH99W5g9R59aRd3jRZTBfU"
+oracle_router = "CC5Xc5DTyLSfcw3MiXbyJQyRA21mh3Shup6bgMH8WGSS"
 
 [programs.devnet]
 a2a_darkpool = "BVrt7REAZoCZBEY987fUPEjn2EvnXyaFzpMPVXb81rnq"
 perp_vault = "FpbuRBF3RiAkpD3k8XccnoYH99W5g9R59aRd3jRZTBfU"
+oracle_router = "CC5Xc5DTyLSfcw3MiXbyJQyRA21mh3Shup6bgMH8WGSS"
 
 [registry]
 url = "https://api.apr.dev"
