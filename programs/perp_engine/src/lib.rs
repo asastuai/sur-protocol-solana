@@ -33,7 +33,7 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("Cwpbe4mwgFdnhwhoRBGBzUerQa52cJMqXWjG3wGvYFW8");
 
 #[program]
 pub mod perp_engine {
