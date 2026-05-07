@@ -1,0 +1,21 @@
+[package]
+name = "a2a_darkpool"
+version = "0.1.0"
+description = "A2A Dark Pool — agent-to-agent OTC perp matching with persistent reputation. Solana port of SUR Protocol's A2ADarkPool.sol."
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "a2a_darkpool"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+idl-build = ["anchor-lang/idl-build"]
+anchor-debug = []
+
+[dependencies]
+anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }

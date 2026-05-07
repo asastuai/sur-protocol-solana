@@ -1,0 +1,27 @@
+{
+  "name": "sur-protocol-solana",
+  "version": "0.2.0-rc1",
+  "description": "SUR Protocol — Solana port. Agent-native perpetual futures DEX with dark pool, persistent reputation, MCP integration, Proof-of-Context settlement gating.",
+  "license": "BUSL-1.1",
+  "private": true,
+  "scripts": {
+    "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "test": "anchor test"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.31.1",
+    "@solana/web3.js": "^1.95.0",
+    "@solana/spl-token": "^0.4.9"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.1.5",
+    "@types/chai": "^4.3.16",
+    "@types/mocha": "^10.0.7",
+    "chai": "^4.5.0",
+    "mocha": "^10.7.0",
+    "prettier": "^3.3.3",
+    "ts-mocha": "^10.0.0",
+    "typescript": "^5.5.4"
+  }
+}
