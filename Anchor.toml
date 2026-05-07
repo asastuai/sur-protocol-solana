@@ -27,4 +27,5 @@ members = [
   "programs/a2a_darkpool",
   "programs/perp_vault",
   "programs/oracle_router",
+  "programs/perp_engine",
 ]

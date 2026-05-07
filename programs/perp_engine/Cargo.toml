@@ -1,0 +1,21 @@
+[package]
+name = "perp_engine"
+version = "0.1.0"
+description = "SUR Protocol — PerpEngine. Solana port of PerpEngine.sol (core subset). v0.2 ships with Market + Position state, openPosition / closePosition / updateMarkPrice. Funding, liquidation eligibility, OI caps, margin tiers, cross/isolated modes, price impact land in v0.3 (Liquidator + AutoDeleveraging as separate programs mirror Solidity)."
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "perp_engine"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+idl-build = ["anchor-lang/idl-build"]
+anchor-debug = []
+
+[dependencies]
+anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
