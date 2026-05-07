@@ -8,9 +8,17 @@ import { PublicKey } from "@solana/web3.js";
  * canonical for **devnet/testnet/dev**. Mainnet rotation happens at v1.0.
  */
 export const SUR_PROGRAM_IDS = {
+  // Phase 0
   a2a_darkpool: new PublicKey("BVrt7REAZoCZBEY987fUPEjn2EvnXyaFzpMPVXb81rnq"),
+
+  // Phase 1 — foundation (v0.2.0)
   perp_vault: new PublicKey("FpbuRBF3RiAkpD3k8XccnoYH99W5g9R59aRd3jRZTBfU"),
   oracle_router: new PublicKey("CC5Xc5DTyLSfcw3MiXbyJQyRA21mh3Shup6bgMH8WGSS"),
   perp_engine: new PublicKey("Cwpbe4mwgFdnhwhoRBGBzUerQa52cJMqXWjG3wGvYFW8"),
   sur_timelock: new PublicKey("9FeQoWChgaRqvKJGqjTmVvpF7jQ4Ph7zgSsrkA4NnwAF"),
+
+  // Phase 2 — risk + markets (v0.2.1 → v0.2.3)
+  liquidator: new PublicKey("9APXqgHS7aNtYsjDE1SJ6PiboJPSyv2QhG9SmLaCzg2R"),
+  insurance_fund: new PublicKey("A9TY4wcr6Buzrac5XLC5aQvz4wWyYjQSogsVBvS3eKPp"),
+  auto_deleveraging: new PublicKey("F12KjhGRyiEbM629MHookPFar7xsbfbfafoZjuBmCTDz"),
 } as const;

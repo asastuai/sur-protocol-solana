@@ -150,6 +150,71 @@ export const SurPdas = {
       [utf8("pausable_target"), target.toBuffer()],
       SUR_PROGRAM_IDS.sur_timelock,
     ),
+
+  // ============================================================
+  //                    liquidator
+  // ============================================================
+  liquidatorConfig: () =>
+    PublicKey.findProgramAddressSync(
+      [utf8("liquidator_config")],
+      SUR_PROGRAM_IDS.liquidator,
+    ),
+
+  liquidatorAuthority: () =>
+    PublicKey.findProgramAddressSync(
+      [utf8("liquidator_authority")],
+      SUR_PROGRAM_IDS.liquidator,
+    ),
+
+  keeperStats: (keeper: PublicKey) =>
+    PublicKey.findProgramAddressSync(
+      [utf8("keeper"), keeper.toBuffer()],
+      SUR_PROGRAM_IDS.liquidator,
+    ),
+
+  // ============================================================
+  //                    insurance_fund
+  // ============================================================
+  insuranceFundConfig: () =>
+    PublicKey.findProgramAddressSync(
+      [utf8("insurance_fund_config")],
+      SUR_PROGRAM_IDS.insurance_fund,
+    ),
+
+  insuranceFundAuthority: () =>
+    PublicKey.findProgramAddressSync(
+      [utf8("insurance_fund_authority")],
+      SUR_PROGRAM_IDS.insurance_fund,
+    ),
+
+  marketBadDebt: (marketId: Uint8Array) => {
+    if (marketId.length !== 32) throw new Error("marketId must be 32 bytes");
+    return PublicKey.findProgramAddressSync(
+      [utf8("market_bad_debt"), Buffer.from(marketId)],
+      SUR_PROGRAM_IDS.insurance_fund,
+    );
+  },
+
+  insuranceFundOperator: (operator: PublicKey) =>
+    PublicKey.findProgramAddressSync(
+      [utf8("operator"), operator.toBuffer()],
+      SUR_PROGRAM_IDS.insurance_fund,
+    ),
+
+  // ============================================================
+  //                    auto_deleveraging
+  // ============================================================
+  adlConfig: () =>
+    PublicKey.findProgramAddressSync(
+      [utf8("adl_config")],
+      SUR_PROGRAM_IDS.auto_deleveraging,
+    ),
+
+  adlOperator: (operator: PublicKey) =>
+    PublicKey.findProgramAddressSync(
+      [utf8("operator"), operator.toBuffer()],
+      SUR_PROGRAM_IDS.auto_deleveraging,
+    ),
 };
 
 // ---- helpers ----

@@ -1,8 +1,26 @@
 {
   "name": "@asastuai/sur-sdk",
-  "version": "0.0.1",
-  "description": "TypeScript SDK for SUR Protocol on Solana — typed clients for a2a_darkpool, perp_vault, oracle_router, perp_engine, sur_timelock.",
+  "version": "0.0.2",
+  "description": "TypeScript SDK for SUR Protocol on Solana — program IDs + PDA helpers for a2a_darkpool, perp_vault, oracle_router, perp_engine, sur_timelock, liquidator, insurance_fund, auto_deleveraging.",
   "license": "BUSL-1.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/asastuai/sur-protocol-solana.git",
+    "directory": "clients/sdk"
+  },
+  "homepage": "https://github.com/asastuai/sur-protocol-solana/tree/main/clients/sdk",
+  "bugs": {
+    "url": "https://github.com/asastuai/sur-protocol-solana/issues"
+  },
+  "keywords": [
+    "solana",
+    "anchor",
+    "perpetuals",
+    "perpdex",
+    "agent",
+    "mcp",
+    "sur-protocol"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": ["dist", "src", "README.md"],
