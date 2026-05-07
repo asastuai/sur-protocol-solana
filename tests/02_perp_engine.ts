@@ -137,7 +137,6 @@ describe("perp_engine", () => {
         trader: trader1.publicKey,
         operatorAccount: operatorPda,
         operator: operatorKp.publicKey,
-        payer: owner.publicKey,
         systemProgram: SystemProgram.programId,
       })
       .signers([operatorKp])
@@ -166,7 +165,6 @@ describe("perp_engine", () => {
         trader: trader2.publicKey,
         operatorAccount: operatorPda,
         operator: operatorKp.publicKey,
-        payer: owner.publicKey,
         systemProgram: SystemProgram.programId,
       })
       .signers([operatorKp])
@@ -215,7 +213,6 @@ describe("perp_engine", () => {
           trader: trader1.publicKey,
           operatorAccount: operatorPda,
           operator: operatorKp.publicKey,
-          payer: owner.publicKey,
           systemProgram: SystemProgram.programId,
         })
         .signers([operatorKp])
@@ -250,7 +247,6 @@ describe("perp_engine", () => {
           trader: trader1.publicKey,
           operatorAccount: strangerOp,
           operator: stranger.publicKey,
-          payer: stranger.publicKey,
           systemProgram: SystemProgram.programId,
         })
         .signers([stranger])
