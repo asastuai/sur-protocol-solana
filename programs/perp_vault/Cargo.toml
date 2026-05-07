@@ -19,4 +19,8 @@ anchor-debug = []
 
 [dependencies]
 anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
-anchor-spl = "0.31.1"
+# idl-build always on for anchor-spl: when a downstream program depends on
+# perp_vault with cpi feature, the conditional `idl-build` doesn't propagate
+# correctly across resolver-2 boundaries. Forcing it on adds ~negligible
+# binary size to the BPF build.
+anchor-spl = { version = "0.31.1", features = ["idl-build"] }
