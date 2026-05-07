@@ -7,6 +7,8 @@ name = "a2a_darkpool"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "perp_engine",
+ "perp_vault",
 ]
 
 [[package]]
