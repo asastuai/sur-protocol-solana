@@ -19,3 +19,4 @@ anchor-debug = []
 
 [dependencies]
 anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
+perp_engine = { path = "../perp_engine", features = ["cpi"] }

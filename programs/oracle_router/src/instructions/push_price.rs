@@ -1,9 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::OracleError;
-use crate::events::{
-    OracleCircuitBreakerTriggered, PricePushPreviewMode, PriceUpdated,
-};
+use crate::events::{OracleCircuitBreakerTriggered, PriceUpdated};
 use crate::state::*;
 
 // ============================================================
@@ -11,15 +9,13 @@ use crate::state::*;
 // ============================================================
 // Solidity: pushPriceWithPyth() / pushPrice() / pushPriceBatch().
 //
-// v0.2 simplification: operator passes already-validated prices in
+// v0.2 simplification: operator passes already-validated prices
 // (mark_price, index_price, source, publish_timestamp). Real Pyth account
-// derivation lands in v0.2.X via pyth-solana-receiver-sdk. The on-chain
-// validation logic (staleness, deviation, change-bps circuit breaker, M-17
-// good-price-count auto-reset) is fully implemented now.
+// derivation lands in v0.2.X via pyth-solana-receiver-sdk.
 //
-// NOTE: perp_engine.update_mark_price CPI is currently a stub
-// (PricePushPreviewMode event marks it). Wire in v0.2.X once perp_engine
-// program lands.
+// CPI to perp_engine.update_mark_price is NOW WIRED. The oracle_router
+// signs as `oracle_authority` PDA (seed `["oracle_authority"]`). That PDA
+// must be pre-registered as an operator in perp_engine.
 
 #[derive(Accounts)]
 pub struct PushPrice<'info> {
@@ -46,6 +42,28 @@ pub struct PushPrice<'info> {
     pub operator_account: Account<'info, Operator>,
 
     pub operator: Signer<'info>,
+
+    /// CHECK: oracle_authority PDA — signs CPI to perp_engine.update_mark_price.
+    /// Must be pre-registered as operator on perp_engine for the CPI to succeed.
+    #[account(
+        seeds = [b"oracle_authority"],
+        bump,
+    )]
+    pub oracle_authority: UncheckedAccount<'info>,
+
+    // -------- perp_engine CPI accounts --------
+    /// CHECK: perp_engine program. Validated by CPI runtime.
+    pub perp_engine_program: UncheckedAccount<'info>,
+
+    /// CHECK: engine config PDA. perp_engine validates ownership at CPI entry.
+    pub engine_config: UncheckedAccount<'info>,
+
+    /// CHECK: engine market PDA. perp_engine validates ownership + seeds.
+    #[account(mut)]
+    pub engine_market: UncheckedAccount<'info>,
+
+    /// CHECK: engine operator PDA for oracle_authority. Pre-registered.
+    pub engine_operator_account: UncheckedAccount<'info>,
 }
 
 pub(crate) fn handler(
@@ -125,13 +143,26 @@ pub(crate) fn handler(
         }
     }
 
-    // ---- Update last price ----
+    // ---- Update last price (oracle-side state) ----
     feed.last_price = mark_price;
     feed.last_price_timestamp = now;
 
-    // ---- CPI STUB to perp_engine.update_mark_price ----
-    // Wire in v0.2.X. Until then PricePushPreviewMode event flags this push
-    // as not-engine-applied for indexers.
+    // ---- CPI to perp_engine.update_mark_price ----
+    let oracle_authority_bump = ctx.bumps.oracle_authority;
+    let signer_seeds: &[&[&[u8]]] = &[&[b"oracle_authority", &[oracle_authority_bump]]];
+
+    let cpi_accounts = perp_engine::cpi::accounts::UpdateMarkPrice {
+        engine_config: ctx.accounts.engine_config.to_account_info(),
+        market: ctx.accounts.engine_market.to_account_info(),
+        operator_account: ctx.accounts.engine_operator_account.to_account_info(),
+        operator: ctx.accounts.oracle_authority.to_account_info(),
+    };
+    let cpi_ctx = CpiContext::new_with_signer(
+        ctx.accounts.perp_engine_program.to_account_info(),
+        cpi_accounts,
+        signer_seeds,
+    );
+    perp_engine::cpi::update_mark_price(cpi_ctx, mark_price, index_price)?;
 
     emit!(PriceUpdated {
         market_id: feed.market_id,
@@ -139,12 +170,6 @@ pub(crate) fn handler(
         index_price,
         source,
         timestamp: now,
-    });
-    emit!(PricePushPreviewMode {
-        market_id: feed.market_id,
-        mark_price,
-        index_price,
-        note: String::from("v0.2 preview: perp_engine CPI not wired"),
     });
 
     Ok(())
@@ -155,7 +180,7 @@ fn calc_deviation_bps(a: u64, b: u64) -> u64 {
         return BPS;
     }
     let diff = if a > b { a - b } else { b - a };
-    let avg = a / 2 + b / 2; // avoids overflow on u64 sum
+    let avg = a / 2 + b / 2;
     if avg == 0 {
         return BPS;
     }
