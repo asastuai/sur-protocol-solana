@@ -33,4 +33,5 @@ members = [
   "programs/oracle_router",
   "programs/perp_engine",
   "programs/sur_timelock",
+  "programs/liquidator",
 ]

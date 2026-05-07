@@ -1,0 +1,51 @@
+//! liquidator — SUR Protocol permissionless liquidator.
+//!
+//! Anyone can call `liquidate(market_id)` to close an undercollateralized
+//! position. The engine validates `is_liquidatable` internally and performs
+//! the close. Liquidator program tracks per-keeper stats for leaderboards
+//! + future reward routing.
+//!
+//! v0.2.1: keeper reward distribution NOT YET wired (lands with engine→vault
+//! CPI in v0.3). Keeper just gets `keeper_stats.liquidations` incremented.
+//!
+//! Source: github.com/asastuai/sur-protocol/blob/master/contracts/src/Liquidator.sol
+
+use anchor_lang::prelude::*;
+
+pub mod errors;
+pub mod events;
+pub mod instructions;
+pub mod state;
+
+use instructions::*;
+
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+
+#[program]
+pub mod liquidator {
+    use super::*;
+
+    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+        instructions::admin::initialize(ctx)
+    }
+
+    pub fn liquidate(ctx: Context<Liquidate>, market_id: [u8; 32]) -> Result<()> {
+        instructions::liquidate::handler(ctx, market_id)
+    }
+
+    pub fn pause(ctx: Context<AdminUpdate>) -> Result<()> {
+        instructions::admin::pause(ctx)
+    }
+
+    pub fn unpause(ctx: Context<AdminUpdate>) -> Result<()> {
+        instructions::admin::unpause(ctx)
+    }
+
+    pub fn transfer_ownership(ctx: Context<AdminUpdate>, new_owner: Pubkey) -> Result<()> {
+        instructions::admin::transfer_ownership(ctx, new_owner)
+    }
+
+    pub fn accept_ownership(ctx: Context<AcceptOwnership>) -> Result<()> {
+        instructions::admin::accept_ownership(ctx)
+    }
+}

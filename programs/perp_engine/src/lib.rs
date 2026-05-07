@@ -79,6 +79,10 @@ pub mod perp_engine {
         instructions::close_position::handler(ctx, fill_price)
     }
 
+    pub fn liquidate_position(ctx: Context<LiquidatePosition>) -> Result<()> {
+        instructions::liquidate_position::handler(ctx)
+    }
+
     pub fn set_operator(
         ctx: Context<SetOperator>,
         operator: Pubkey,

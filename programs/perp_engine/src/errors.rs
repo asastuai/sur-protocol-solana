@@ -47,6 +47,9 @@ pub enum EngineError {
     #[msg("Stale price (last update older than max age)")]
     StalePrice,
 
+    #[msg("Position is not liquidatable (equity >= maintenance margin)")]
+    PositionNotLiquidatable,
+
     #[msg("Invalid parameter")]
     InvalidParam,
 
