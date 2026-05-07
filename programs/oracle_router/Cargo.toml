@@ -1,0 +1,21 @@
+[package]
+name = "oracle_router"
+version = "0.1.0"
+description = "SUR Protocol — OracleRouter. Solana port of OracleRouter.sol. Validates price updates with staleness, confidence, deviation, and circuit-breaker rules; pushes mark+index prices to perp_engine. v0.2 ships with operator-pushed prices (Pyth-account integration deferred to v0.2.X)."
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "oracle_router"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+idl-build = ["anchor-lang/idl-build"]
+anchor-debug = []
+
+[dependencies]
+anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
