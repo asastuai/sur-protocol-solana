@@ -8,6 +8,7 @@ perp_vault = "FpbuRBF3RiAkpD3k8XccnoYH99W5g9R59aRd3jRZTBfU"
 oracle_router = "CC5Xc5DTyLSfcw3MiXbyJQyRA21mh3Shup6bgMH8WGSS"
 perp_engine = "Cwpbe4mwgFdnhwhoRBGBzUerQa52cJMqXWjG3wGvYFW8"
 sur_timelock = "9FeQoWChgaRqvKJGqjTmVvpF7jQ4Ph7zgSsrkA4NnwAF"
+liquidator = "9APXqgHS7aNtYsjDE1SJ6PiboJPSyv2QhG9SmLaCzg2R"
 
 [programs.devnet]
 a2a_darkpool = "BVrt7REAZoCZBEY987fUPEjn2EvnXyaFzpMPVXb81rnq"
@@ -15,6 +16,7 @@ perp_vault = "FpbuRBF3RiAkpD3k8XccnoYH99W5g9R59aRd3jRZTBfU"
 oracle_router = "CC5Xc5DTyLSfcw3MiXbyJQyRA21mh3Shup6bgMH8WGSS"
 perp_engine = "Cwpbe4mwgFdnhwhoRBGBzUerQa52cJMqXWjG3wGvYFW8"
 sur_timelock = "9FeQoWChgaRqvKJGqjTmVvpF7jQ4Ph7zgSsrkA4NnwAF"
+liquidator = "9APXqgHS7aNtYsjDE1SJ6PiboJPSyv2QhG9SmLaCzg2R"
 
 [registry]
 url = "https://api.apr.dev"
