@@ -1,0 +1,25 @@
+{
+  "name": "@asastuai/sur-sdk",
+  "version": "0.0.1",
+  "description": "TypeScript SDK for SUR Protocol on Solana — typed clients for a2a_darkpool, perp_vault, oracle_router, perp_engine, sur_timelock.",
+  "license": "BUSL-1.1",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "src", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.31.1",
+    "@solana/web3.js": "^1.95.0",
+    "@solana/spl-token": "^0.4.9"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "@types/node": "^20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
