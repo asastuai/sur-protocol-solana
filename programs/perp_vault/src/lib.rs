@@ -16,8 +16,7 @@ pub mod state;
 
 use instructions::*;
 
-// Placeholder. cargo-build-sbf will regenerate the keypair on first build.
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("FpbuRBF3RiAkpD3k8XccnoYH99W5g9R59aRd3jRZTBfU");
 
 #[program]
 pub mod perp_vault {

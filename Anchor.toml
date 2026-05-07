@@ -3,10 +3,12 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-a2a_darkpool = "GzVwDYif1k5x5rj2pzZLBpgHvcqYAx1XhjFbszzqFa4q"
+a2a_darkpool = "BVrt7REAZoCZBEY987fUPEjn2EvnXyaFzpMPVXb81rnq"
+perp_vault = "FpbuRBF3RiAkpD3k8XccnoYH99W5g9R59aRd3jRZTBfU"
 
 [programs.devnet]
-a2a_darkpool = "GzVwDYif1k5x5rj2pzZLBpgHvcqYAx1XhjFbszzqFa4q"
+a2a_darkpool = "BVrt7REAZoCZBEY987fUPEjn2EvnXyaFzpMPVXb81rnq"
+perp_vault = "FpbuRBF3RiAkpD3k8XccnoYH99W5g9R59aRd3jRZTBfU"
 
 [registry]
 url = "https://api.apr.dev"
