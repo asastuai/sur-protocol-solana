@@ -12,14 +12,17 @@ Phased pipeline for porting SUR Protocol from Solidity (Base L2) to Anchor (Sola
 - `programs/a2a_darkpool` — 4/4 tests passing
 - Tag: `v0.1.0`
 
-## Phase 1 — Foundation 🚧
-- `programs/perp_vault` ✅ — 8/8 tests passing (USDC custody, deposit/withdraw, internal_transfer, collateral splitting)
-- `programs/oracle_router` ✅ — 9/9 tests passing (Pyth-only, circuit breaker, staleness, deviation)
-- `programs/perp_engine` ✅ — 9/9 tests passing (CORE: openPosition, closePosition, updateMarkPrice, OI accounting, realized PnL)
-- 🚧 **Wire CPIs:** `a2a_darkpool.accept_and_settle` → `perp_engine.open_position` (×2) + `perp_vault.internal_transfer` (×2)
-- 🚧 **Wire CPIs:** `oracle_router.push_price` → `perp_engine.update_mark_price`
-- 🚧 **Wire CPIs:** `perp_engine.{open,close}_position` → `perp_vault.internal_transfer` (margin lock + PnL settlement)
-- Tag when CPIs wired: `v0.2.0`
+## Phase 1 — Foundation ✅ (v0.2.0)
+- `programs/perp_vault` ✅ — 8/8 tests (USDC custody, deposit/withdraw, internal_transfer, collateral splitting)
+- `programs/oracle_router` ✅ — 7/7 tests (Pyth-only, circuit breaker, staleness, deviation)
+- `programs/perp_engine` ✅ — 9/9 tests (CORE: openPosition, closePosition, updateMarkPrice, OI accounting, realized PnL)
+- `programs/a2a_darkpool` ✅ — 4/4 tests including end-to-end CPI settlement
+- `programs/sur_timelock` ✅ — 6/6 tests (queue/execute/cancel + emergency_pause guardian)
+- ✅ CPI: `oracle_router.push_price` → `perp_engine.update_mark_price` (typed `cpi::*` wrappers)
+- ✅ CPI: `a2a_darkpool.accept_and_settle` → `perp_engine.open_position` (×2) + `perp_vault.internal_transfer` (×2) via manual `invoke_signed` (works around anchor 0.31.1 cpi+idl-build bug — see KNOWN-ISSUES.md)
+- ⏳ CPI: `perp_engine.{open,close}_position` → `perp_vault.internal_transfer` for margin lock + PnL settlement (deferred to Phase 2)
+- **34/34 integration tests passing in WSL2**
+- Tag: `v0.2.0`
 
 ## Phase 2 — Risk + Markets ⏳
 Mirroring upstream Solidity contract split (each becomes its own Anchor program):
