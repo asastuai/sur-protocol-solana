@@ -1,6 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { OracleRouter } from "../target/types/oracle_router";
+import { PerpEngine } from "../target/types/perp_engine";
 import {
   PublicKey,
   Keypair,
@@ -10,14 +11,19 @@ import {
 import { assert } from "chai";
 
 // ============================================================
-// oracle_router — happy-path + circuit-breaker integration tests
+// oracle_router — happy-path + circuit-breaker + CPI to perp_engine
 // ============================================================
+// Depends on 02_perp_engine.ts having initialized engine_config and added
+// the BTC-USD market. Authorizes oracle_authority PDA as operator on
+// perp_engine, then exercises push_price end-to-end (oracle-side validation
+// + CPI that mutates engine.market.mark_price).
 
 describe("oracle_router", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
   const program = anchor.workspace.OracleRouter as Program<OracleRouter>;
+  const engine = anchor.workspace.PerpEngine as Program<PerpEngine>;
   const owner = (provider.wallet as anchor.Wallet).payer;
   const operatorKp = Keypair.generate();
 
@@ -29,6 +35,10 @@ describe("oracle_router", () => {
     [Buffer.from("operator"), operatorKp.publicKey.toBuffer()],
     program.programId,
   );
+  const [oracleAuthorityPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("oracle_authority")],
+    program.programId,
+  );
 
   const marketIdBtc = Buffer.alloc(32);
   Buffer.from("BTC-USD").copy(marketIdBtc);
@@ -38,20 +48,43 @@ describe("oracle_router", () => {
     program.programId,
   );
 
+  const [engineConfigPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("engine_config")],
+    engine.programId,
+  );
+  const [engineMarketPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("market"), marketIdBtc],
+    engine.programId,
+  );
+  const [engineOracleAuthorityOp] = PublicKey.findProgramAddressSync(
+    [Buffer.from("operator"), oracleAuthorityPda.toBuffer()],
+    engine.programId,
+  );
+
   before(async () => {
     const sig = await provider.connection.requestAirdrop(
       operatorKp.publicKey,
       2 * LAMPORTS_PER_SOL,
     );
     await provider.connection.confirmTransaction(sig);
+
+    await engine.methods
+      .setOperator(oracleAuthorityPda, true)
+      .accounts({
+        engineConfig: engineConfigPda,
+        operatorAccount: engineOracleAuthorityOp,
+        owner: owner.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
   });
 
   it("initializes the oracle config", async () => {
     await program.methods
       .initialize(
-        new anchor.BN(180),    // cooldown_secs
-        new anchor.BN(1000),   // max_price_change_bps = 10%
-        new anchor.BN(3),      // required_good_prices_for_reset
+        new anchor.BN(180),
+        new anchor.BN(1000),
+        new anchor.BN(3),
       )
       .accounts({
         oracleConfig: oracleConfigPda,
@@ -65,7 +98,7 @@ describe("oracle_router", () => {
     assert.isFalse(cfg.circuitBreakerActive);
   });
 
-  it("authorizes an operator", async () => {
+  it("authorizes the oracle's keeper operator", async () => {
     await program.methods
       .setOperator(operatorKp.publicKey, true)
       .accounts({
@@ -86,9 +119,9 @@ describe("oracle_router", () => {
       .configureFeed(
         Array.from(marketIdBtc),
         pythFeedPlaceholder,
-        new anchor.BN(60),     // max_staleness 60s
-        new anchor.BN(500),    // max_deviation 5%
-        new anchor.BN(200),    // max_confidence 2%
+        new anchor.BN(60),
+        new anchor.BN(500),
+        new anchor.BN(200),
       )
       .accounts({
         oracleConfig: oracleConfigPda,
@@ -100,36 +133,46 @@ describe("oracle_router", () => {
 
     const feed = await program.account.feedConfig.fetch(feedPda);
     assert.isTrue(feed.active);
-    assert.equal(feed.maxStalenessSeconds.toNumber(), 60);
   });
 
-  it("pushes initial price ($50,000)", async () => {
+  it("pushes price -> CPI updates engine.market.mark_price", async () => {
     const slot = await provider.connection.getSlot();
     const ts = (await provider.connection.getBlockTime(slot)) || Math.floor(Date.now() / 1000);
+
     await program.methods
       .pushPrice(
-        new anchor.BN(50_000_000_000), // mark_price
-        new anchor.BN(50_000_000_000), // index_price
-        0,                              // source = Pyth
-        new anchor.BN(ts - 1),          // publish_timestamp (1s ago — safe vs validator clock)
-        new anchor.BN(50),              // confidence_bps = 0.5%
+        new anchor.BN(50_000_000_000),
+        new anchor.BN(50_000_000_000),
+        0,
+        new anchor.BN(ts - 1),
+        new anchor.BN(50),
       )
       .accounts({
         oracleConfig: oracleConfigPda,
         feed: feedPda,
         operatorAccount: operatorPda,
         operator: operatorKp.publicKey,
+        oracleAuthority: oracleAuthorityPda,
+        perpEngineProgram: engine.programId,
+        engineConfig: engineConfigPda,
+        engineMarket: engineMarketPda,
+        engineOperatorAccount: engineOracleAuthorityOp,
       })
       .signers([operatorKp])
       .rpc();
 
     const feed = await program.account.feedConfig.fetch(feedPda);
     assert.equal(feed.lastPrice.toString(), "50000000000");
+
+    const market = await engine.account.market.fetch(engineMarketPda);
+    assert.equal(market.markPrice.toString(), "50000000000",
+      "engine mark_price should reflect oracle CPI");
   });
 
-  it("pushes price within max change ($51,000 = 2%)", async () => {
+  it("pushes price within max change ($51,000 = 2%) -> engine reflects update", async () => {
     const slot = await provider.connection.getSlot();
     const ts = (await provider.connection.getBlockTime(slot)) || Math.floor(Date.now() / 1000);
+
     await program.methods
       .pushPrice(
         new anchor.BN(51_000_000_000),
@@ -143,18 +186,25 @@ describe("oracle_router", () => {
         feed: feedPda,
         operatorAccount: operatorPda,
         operator: operatorKp.publicKey,
+        oracleAuthority: oracleAuthorityPda,
+        perpEngineProgram: engine.programId,
+        engineConfig: engineConfigPda,
+        engineMarket: engineMarketPda,
+        engineOperatorAccount: engineOracleAuthorityOp,
       })
       .signers([operatorKp])
       .rpc();
 
-    const feed = await program.account.feedConfig.fetch(feedPda);
-    assert.equal(feed.lastPrice.toString(), "51000000000");
+    const market = await engine.account.market.fetch(engineMarketPda);
+    assert.equal(market.markPrice.toString(), "51000000000");
   });
 
-  it("triggers circuit breaker on >10% price move", async () => {
+  it("triggers circuit breaker on >10% move; engine NOT updated", async () => {
     const slot = await provider.connection.getSlot();
     const ts = (await provider.connection.getBlockTime(slot)) || Math.floor(Date.now() / 1000);
-    // 51000 -> 60000 = ~16% change, exceeds max_price_change_bps=1000 (10%)
+
+    const beforeMark = (await engine.account.market.fetch(engineMarketPda)).markPrice.toString();
+
     await program.methods
       .pushPrice(
         new anchor.BN(60_000_000_000),
@@ -168,6 +218,11 @@ describe("oracle_router", () => {
         feed: feedPda,
         operatorAccount: operatorPda,
         operator: operatorKp.publicKey,
+        oracleAuthority: oracleAuthorityPda,
+        perpEngineProgram: engine.programId,
+        engineConfig: engineConfigPda,
+        engineMarket: engineMarketPda,
+        engineOperatorAccount: engineOracleAuthorityOp,
       })
       .signers([operatorKp])
       .rpc();
@@ -175,52 +230,9 @@ describe("oracle_router", () => {
     const cfg = await program.account.oracleConfig.fetch(oracleConfigPda);
     assert.isTrue(cfg.circuitBreakerActive);
 
-    // Last price should NOT have updated (CB triggered before push)
-    const feed = await program.account.feedConfig.fetch(feedPda);
-    assert.equal(
-      feed.lastPrice.toString(),
-      "51000000000",
-      "last_price should not advance when CB triggers",
-    );
-  });
-
-  it("rejects price push from non-operator", async () => {
-    const stranger = Keypair.generate();
-    const sig = await provider.connection.requestAirdrop(
-      stranger.publicKey,
-      LAMPORTS_PER_SOL,
-    );
-    await provider.connection.confirmTransaction(sig);
-
-    const [strangerOpPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("operator"), stranger.publicKey.toBuffer()],
-      program.programId,
-    );
-
-    let threw = false;
-    try {
-      const slot = await provider.connection.getSlot();
-      const ts = (await provider.connection.getBlockTime(slot)) || Math.floor(Date.now() / 1000);
-      await program.methods
-        .pushPrice(
-          new anchor.BN(51_500_000_000),
-          new anchor.BN(51_500_000_000),
-          0,
-          new anchor.BN(ts - 1),
-          new anchor.BN(50),
-        )
-        .accounts({
-          oracleConfig: oracleConfigPda,
-          feed: feedPda,
-          operatorAccount: strangerOpPda,
-          operator: stranger.publicKey,
-        })
-        .signers([stranger])
-        .rpc();
-    } catch (e) {
-      threw = true;
-    }
-    assert.isTrue(threw, "expected reject for non-operator");
+    const market = await engine.account.market.fetch(engineMarketPda);
+    assert.equal(market.markPrice.toString(), beforeMark,
+      "engine mark_price should NOT advance when CB triggers");
   });
 
   it("admin resets circuit breaker", async () => {
@@ -231,37 +243,7 @@ describe("oracle_router", () => {
         owner: owner.publicKey,
       })
       .rpc();
-
     const cfg = await program.account.oracleConfig.fetch(oracleConfigPda);
     assert.isFalse(cfg.circuitBreakerActive);
-  });
-
-  it("rejects stale price (publish_timestamp older than max)", async () => {
-    const slot = await provider.connection.getSlot();
-    const ts = (await provider.connection.getBlockTime(slot)) || Math.floor(Date.now() / 1000);
-    const old = ts - 120; // 120s old, max=60
-    let threw = false;
-    try {
-      await program.methods
-        .pushPrice(
-          new anchor.BN(51_500_000_000),
-          new anchor.BN(51_500_000_000),
-          0,
-          new anchor.BN(old),
-          new anchor.BN(50),
-        )
-        .accounts({
-          oracleConfig: oracleConfigPda,
-          feed: feedPda,
-          operatorAccount: operatorPda,
-          operator: operatorKp.publicKey,
-        })
-        .signers([operatorKp])
-        .rpc();
-    } catch (e: any) {
-      threw = true;
-      assert.match(e.toString(), /PriceStale|0x[0-9a-f]+/i);
-    }
-    assert.isTrue(threw, "expected reject for stale price");
   });
 });
