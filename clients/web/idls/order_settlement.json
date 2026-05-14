@@ -1,0 +1,1928 @@
+{
+  "address": "2q4HtPAjUMFPDfipazQhb52sRun3x9TdpwRHysWBg6Vf",
+  "metadata": {
+    "name": "order_settlement",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "SUR Protocol — OrderSettlement. Bridges off-chain matching engine to on-chain execution: verifies trader signatures, collects fees, opens positions via CPI. Solana port of OrderSettlement.sol."
+  },
+  "instructions": [
+    {
+      "name": "accept_ownership",
+      "discriminator": [
+        172,
+        23,
+        43,
+        13,
+        238,
+        213,
+        85,
+        150
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_owner",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "commit_order",
+      "discriminator": [
+        106,
+        167,
+        189,
+        186,
+        74,
+        113,
+        139,
+        232
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
+                  116,
+                  111,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        },
+        {
+          "name": "snapshot",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  109,
+                  105,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "commit_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "commit_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "order",
+          "type": {
+            "defined": {
+              "name": "SignedOrder"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "docs": [
+            "PDAs at perp_engine + perp_vault (positions, balances). Must be",
+            "pre-registered as operator on both callee programs."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  95,
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "perp_engine_program"
+        },
+        {
+          "name": "perp_engine_config"
+        },
+        {
+          "name": "engine_operator_account"
+        },
+        {
+          "name": "perp_vault_program"
+        },
+        {
+          "name": "perp_vault_config"
+        },
+        {
+          "name": "vault_operator_account"
+        },
+        {
+          "name": "fee_recipient"
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "cluster_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "pause",
+      "discriminator": [
+        211,
+        22,
+        221,
+        251,
+        74,
+        121,
+        193,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "set_dynamic_spread_enabled",
+      "discriminator": [
+        201,
+        119,
+        8,
+        85,
+        50,
+        184,
+        227,
+        227
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "enabled",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "set_dynamic_spread_tiers",
+      "discriminator": [
+        24,
+        25,
+        104,
+        25,
+        251,
+        151,
+        196,
+        85
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "tier1",
+          "type": "u32"
+        },
+        {
+          "name": "tier2",
+          "type": "u32"
+        },
+        {
+          "name": "tier3",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "set_fee_recipient",
+      "discriminator": [
+        227,
+        18,
+        215,
+        42,
+        237,
+        246,
+        151,
+        66
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_recipient"
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "set_fees",
+      "discriminator": [
+        137,
+        178,
+        49,
+        58,
+        0,
+        245,
+        242,
+        190
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "maker",
+          "type": "u32"
+        },
+        {
+          "name": "taker",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "set_operator",
+      "discriminator": [
+        238,
+        153,
+        101,
+        169,
+        243,
+        131,
+        36,
+        1
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
+                  116,
+                  111,
+                  114
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "operator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "operator",
+          "type": "pubkey"
+        },
+        {
+          "name": "status",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "set_settlement_delay",
+      "discriminator": [
+        122,
+        91,
+        209,
+        53,
+        160,
+        209,
+        137,
+        158
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "min_delay",
+          "type": "i64"
+        },
+        {
+          "name": "max_delay",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "settle_one",
+      "discriminator": [
+        52,
+        71,
+        62,
+        219,
+        31,
+        240,
+        162,
+        72
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
+                  116,
+                  111,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  95,
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "maker_nonce_page",
+          "writable": true
+        },
+        {
+          "name": "taker_nonce_page",
+          "writable": true
+        },
+        {
+          "name": "perp_engine_program"
+        },
+        {
+          "name": "engine_config"
+        },
+        {
+          "name": "engine_market",
+          "writable": true
+        },
+        {
+          "name": "maker_position",
+          "writable": true
+        },
+        {
+          "name": "taker_position",
+          "writable": true
+        },
+        {
+          "name": "maker_trader"
+        },
+        {
+          "name": "taker_trader"
+        },
+        {
+          "name": "engine_operator_account"
+        },
+        {
+          "name": "engine_authority"
+        },
+        {
+          "name": "engine_vault_operator"
+        },
+        {
+          "name": "engine_pool_balance",
+          "writable": true
+        },
+        {
+          "name": "perp_vault_program"
+        },
+        {
+          "name": "vault_config"
+        },
+        {
+          "name": "vault_operator_account"
+        },
+        {
+          "name": "maker_balance",
+          "writable": true
+        },
+        {
+          "name": "taker_balance",
+          "writable": true
+        },
+        {
+          "name": "fee_recipient_balance",
+          "writable": true
+        },
+        {
+          "name": "maker_snapshot",
+          "docs": [
+            "the handler ignores it unless owner == this program AND content",
+            "matches expected commit hash."
+          ]
+        },
+        {
+          "name": "taker_snapshot"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "trade",
+          "type": {
+            "defined": {
+              "name": "MatchedTrade"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "transfer_ownership",
+      "discriminator": [
+        65,
+        177,
+        215,
+        73,
+        53,
+        45,
+        99,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "new_owner",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "unpause",
+      "discriminator": [
+        169,
+        144,
+        4,
+        38,
+        10,
+        141,
+        188,
+        255
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "NoncePage",
+      "discriminator": [
+        87,
+        252,
+        122,
+        118,
+        210,
+        249,
+        197,
+        39
+      ]
+    },
+    {
+      "name": "Operator",
+      "discriminator": [
+        219,
+        31,
+        188,
+        145,
+        69,
+        139,
+        204,
+        117
+      ]
+    },
+    {
+      "name": "OrderSettlementConfig",
+      "discriminator": [
+        108,
+        168,
+        6,
+        200,
+        217,
+        163,
+        141,
+        159
+      ]
+    },
+    {
+      "name": "OrderSnapshot",
+      "discriminator": [
+        158,
+        22,
+        119,
+        95,
+        20,
+        118,
+        228,
+        11
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "BatchSettled",
+      "discriminator": [
+        238,
+        14,
+        187,
+        192,
+        127,
+        95,
+        104,
+        9
+      ]
+    },
+    {
+      "name": "DynamicSpreadApplied",
+      "discriminator": [
+        69,
+        172,
+        206,
+        61,
+        14,
+        24,
+        210,
+        248
+      ]
+    },
+    {
+      "name": "DynamicSpreadTiersUpdated",
+      "discriminator": [
+        122,
+        184,
+        206,
+        219,
+        175,
+        92,
+        232,
+        169
+      ]
+    },
+    {
+      "name": "DynamicSpreadUpdated",
+      "discriminator": [
+        203,
+        28,
+        65,
+        172,
+        114,
+        182,
+        150,
+        20
+      ]
+    },
+    {
+      "name": "FeeRecipientUpdated",
+      "discriminator": [
+        24,
+        150,
+        233,
+        92,
+        169,
+        221,
+        233,
+        244
+      ]
+    },
+    {
+      "name": "FeesUpdated",
+      "discriminator": [
+        65,
+        34,
+        234,
+        59,
+        248,
+        242,
+        101,
+        118
+      ]
+    },
+    {
+      "name": "OperatorUpdated",
+      "discriminator": [
+        28,
+        104,
+        226,
+        145,
+        253,
+        229,
+        17,
+        245
+      ]
+    },
+    {
+      "name": "OrderCommitted",
+      "discriminator": [
+        120,
+        115,
+        67,
+        82,
+        131,
+        215,
+        13,
+        83
+      ]
+    },
+    {
+      "name": "OwnershipTransferStarted",
+      "discriminator": [
+        183,
+        253,
+        239,
+        246,
+        140,
+        179,
+        133,
+        105
+      ]
+    },
+    {
+      "name": "OwnershipTransferred",
+      "discriminator": [
+        172,
+        61,
+        205,
+        183,
+        250,
+        50,
+        38,
+        98
+      ]
+    },
+    {
+      "name": "ParameterBump",
+      "discriminator": [
+        208,
+        156,
+        82,
+        233,
+        220,
+        173,
+        178,
+        254
+      ]
+    },
+    {
+      "name": "PauseStatusChanged",
+      "discriminator": [
+        79,
+        144,
+        205,
+        195,
+        9,
+        152,
+        146,
+        91
+      ]
+    },
+    {
+      "name": "TimeLockUpdated",
+      "discriminator": [
+        213,
+        6,
+        236,
+        221,
+        30,
+        73,
+        57,
+        83
+      ]
+    },
+    {
+      "name": "TradeSettled",
+      "discriminator": [
+        22,
+        119,
+        166,
+        225,
+        175,
+        53,
+        93,
+        216
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "NotOwner",
+      "msg": "Caller is not owner"
+    },
+    {
+      "code": 6001,
+      "name": "NotPendingOwner",
+      "msg": "Caller is not pending owner"
+    },
+    {
+      "code": 6002,
+      "name": "NotOperator",
+      "msg": "Caller is not an authorized operator"
+    },
+    {
+      "code": 6003,
+      "name": "PausedError",
+      "msg": "Settlement is paused"
+    },
+    {
+      "code": 6004,
+      "name": "ZeroAddress",
+      "msg": "Zero address"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidSignature",
+      "msg": "Invalid signature"
+    },
+    {
+      "code": 6006,
+      "name": "MissingEd25519Ix",
+      "msg": "Missing ed25519 verification instruction"
+    },
+    {
+      "code": 6007,
+      "name": "Ed25519MessageMismatch",
+      "msg": "ed25519 instruction message mismatch"
+    },
+    {
+      "code": 6008,
+      "name": "Ed25519SignerMismatch",
+      "msg": "ed25519 instruction signer mismatch"
+    },
+    {
+      "code": 6009,
+      "name": "OrderExpired",
+      "msg": "Order expired"
+    },
+    {
+      "code": 6010,
+      "name": "OrderSignedInFuture",
+      "msg": "Order signed in the future"
+    },
+    {
+      "code": 6011,
+      "name": "OrderTooRecent",
+      "msg": "Order too recent (commit-settle delay not elapsed)"
+    },
+    {
+      "code": 6012,
+      "name": "OrderTooOld",
+      "msg": "Order signed too long ago"
+    },
+    {
+      "code": 6013,
+      "name": "NonceAlreadyUsed",
+      "msg": "Nonce already used"
+    },
+    {
+      "code": 6014,
+      "name": "MarketMismatch",
+      "msg": "Market mismatch between maker and taker"
+    },
+    {
+      "code": 6015,
+      "name": "SidesNotOpposite",
+      "msg": "Sides not opposite (both long or both short)"
+    },
+    {
+      "code": 6016,
+      "name": "SelfTrade",
+      "msg": "Self trade rejected"
+    },
+    {
+      "code": 6017,
+      "name": "ZeroSize",
+      "msg": "Zero size"
+    },
+    {
+      "code": 6018,
+      "name": "ZeroPrice",
+      "msg": "Zero price"
+    },
+    {
+      "code": 6019,
+      "name": "BatchEmpty",
+      "msg": "Batch is empty"
+    },
+    {
+      "code": 6020,
+      "name": "ExecPriceExceedsTakerLimit",
+      "msg": "Execution price exceeds taker limit"
+    },
+    {
+      "code": 6021,
+      "name": "ExecPriceBelowTakerLimit",
+      "msg": "Execution price below taker limit"
+    },
+    {
+      "code": 6022,
+      "name": "ExecPriceExceedsMakerLimit",
+      "msg": "Execution price exceeds maker limit"
+    },
+    {
+      "code": 6023,
+      "name": "ExecPriceBelowMakerLimit",
+      "msg": "Execution price below maker limit"
+    },
+    {
+      "code": 6024,
+      "name": "ExecSizeExceedsMaker",
+      "msg": "Execution size exceeds maker order"
+    },
+    {
+      "code": 6025,
+      "name": "ExecSizeExceedsTaker",
+      "msg": "Execution size exceeds taker order"
+    },
+    {
+      "code": 6026,
+      "name": "FeeTooHigh",
+      "msg": "Fee too high (>1000 bps)"
+    },
+    {
+      "code": 6027,
+      "name": "DelayMisordered",
+      "msg": "Delay misordered (max < min)"
+    },
+    {
+      "code": 6028,
+      "name": "DelayTooHigh",
+      "msg": "Delay exceeds maximum"
+    },
+    {
+      "code": 6029,
+      "name": "TiersNotAscending",
+      "msg": "Spread tiers must be ascending"
+    },
+    {
+      "code": 6030,
+      "name": "MathOverflow",
+      "msg": "Math overflow"
+    },
+    {
+      "code": 6031,
+      "name": "NoncePageMismatch",
+      "msg": "Nonce page mismatch"
+    },
+    {
+      "code": 6032,
+      "name": "AccountMismatch",
+      "msg": "Account mismatch"
+    },
+    {
+      "code": 6033,
+      "name": "CommitHashMismatch",
+      "msg": "Commit hash mismatch"
+    },
+    {
+      "code": 6034,
+      "name": "RemainingAccountsArity",
+      "msg": "Remaining accounts arity invalid for batch settle"
+    }
+  ],
+  "types": [
+    {
+      "name": "BatchSettled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "batch_id",
+            "type": "u64"
+          },
+          {
+            "name": "trades_count",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DynamicSpreadApplied",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "extra_fee_bps",
+            "type": "u32"
+          },
+          {
+            "name": "skew_ratio_bps",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DynamicSpreadTiersUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tier1",
+            "type": "u32"
+          },
+          {
+            "name": "tier2",
+            "type": "u32"
+          },
+          {
+            "name": "tier3",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DynamicSpreadUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "enabled",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeeRecipientUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old_recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_recipient",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeesUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "maker_fee_bps",
+            "type": "u32"
+          },
+          {
+            "name": "taker_fee_bps",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MatchedTrade",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "maker",
+            "type": {
+              "defined": {
+                "name": "SignedOrder"
+              }
+            }
+          },
+          {
+            "name": "taker",
+            "type": {
+              "defined": {
+                "name": "SignedOrder"
+              }
+            }
+          },
+          {
+            "name": "execution_price",
+            "type": "u64"
+          },
+          {
+            "name": "execution_size",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "NoncePage",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "page_index",
+            "type": "u64"
+          },
+          {
+            "name": "bits",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Operator",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "authorized",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OperatorUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "status",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderCommitted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "commit_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "commit_time",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderSettlementConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "authority_bump",
+            "type": "u8"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "perp_engine_program",
+            "type": "pubkey"
+          },
+          {
+            "name": "perp_engine_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "engine_operator_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "perp_vault_program",
+            "type": "pubkey"
+          },
+          {
+            "name": "perp_vault_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault_operator_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "maker_fee_bps",
+            "type": "u32"
+          },
+          {
+            "name": "taker_fee_bps",
+            "type": "u32"
+          },
+          {
+            "name": "min_settlement_delay",
+            "type": "i64"
+          },
+          {
+            "name": "max_settlement_delay",
+            "type": "i64"
+          },
+          {
+            "name": "dynamic_spread_enabled",
+            "type": "bool"
+          },
+          {
+            "name": "spread_tier_1_bps",
+            "type": "u32"
+          },
+          {
+            "name": "spread_tier_2_bps",
+            "type": "u32"
+          },
+          {
+            "name": "spread_tier_3_bps",
+            "type": "u32"
+          },
+          {
+            "name": "batch_counter",
+            "type": "u64"
+          },
+          {
+            "name": "domain_separator",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "cluster_id",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderSnapshot",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "commit_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "commit_time",
+            "type": "i64"
+          },
+          {
+            "name": "maker_fee_bps",
+            "type": "u32"
+          },
+          {
+            "name": "taker_fee_bps",
+            "type": "u32"
+          },
+          {
+            "name": "min_settlement_delay",
+            "type": "i64"
+          },
+          {
+            "name": "dynamic_spread_enabled",
+            "type": "bool"
+          },
+          {
+            "name": "spread_tier_1_bps",
+            "type": "u32"
+          },
+          {
+            "name": "spread_tier_2_bps",
+            "type": "u32"
+          },
+          {
+            "name": "spread_tier_3_bps",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OwnershipTransferStarted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "current_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_owner",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OwnershipTransferred",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "previous_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_owner",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ParameterBump",
+      "docs": [
+        "Mapping 3 prospective-only param bump.",
+        "`param_id` is the sha256 of the canonical parameter name",
+        "(e.g. sha256(\"OrderSettlement.makerFeeBps\")). `old_value` and",
+        "`new_value` are little-endian byte encodings of the parameter",
+        "(4 bytes for u32, 8 bytes for i64/u64, 1 byte for bool, or a",
+        "concatenation of 3*4 bytes for the spread tier triple)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "param_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "old_value",
+            "type": "bytes"
+          },
+          {
+            "name": "new_value",
+            "type": "bytes"
+          },
+          {
+            "name": "effective_slot",
+            "type": "u64"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PauseStatusChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "is_paused",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SignedOrder",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "market_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "is_long",
+            "type": "bool"
+          },
+          {
+            "name": "size",
+            "type": "u64"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          },
+          {
+            "name": "signed_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TimeLockUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_min_delay_secs",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TradeSettled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "maker",
+            "type": "pubkey"
+          },
+          {
+            "name": "taker",
+            "type": "pubkey"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "size",
+            "type": "u64"
+          },
+          {
+            "name": "taker_is_long",
+            "type": "bool"
+          },
+          {
+            "name": "maker_fee",
+            "type": "u64"
+          },
+          {
+            "name": "taker_fee",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ]
+}

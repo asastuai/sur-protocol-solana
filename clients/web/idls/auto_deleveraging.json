@@ -1,0 +1,1085 @@
+{
+  "address": "F12KjhGRyiEbM629MHookPFar7xsbfbfafoZjuBmCTDz",
+  "metadata": {
+    "name": "auto_deleveraging",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "SUR Protocol — ADL last-resort mechanism. Forcibly reduces profitable positions when insurance fund insufficient. Solana port of AutoDeleveraging.sol with manual invoke_signed CPI to perp_engine.open_position."
+  },
+  "instructions": [
+    {
+      "name": "accept_ownership",
+      "discriminator": [
+        172,
+        23,
+        43,
+        13,
+        238,
+        213,
+        85,
+        150
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_owner",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "execute_adl",
+      "discriminator": [
+        215,
+        162,
+        171,
+        194,
+        70,
+        177,
+        146,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
+                  116,
+                  111,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority",
+          "docs": [
+            "Pre-registered as engine operator.",
+            "Mut so it can fund init_if_needed paths inside engine."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  108,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "perp_engine_program"
+        },
+        {
+          "name": "engine_config"
+        },
+        {
+          "name": "engine_market",
+          "writable": true
+        },
+        {
+          "name": "engine_position",
+          "writable": true
+        },
+        {
+          "name": "trader_account"
+        },
+        {
+          "name": "engine_operator_account"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "market_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "trader",
+          "type": "pubkey"
+        },
+        {
+          "name": "position_size",
+          "type": "i64"
+        },
+        {
+          "name": "reduce_size",
+          "type": "u64"
+        },
+        {
+          "name": "mark_price",
+          "type": "u64"
+        },
+        {
+          "name": "bad_debt_amount",
+          "type": "u64"
+        },
+        {
+          "name": "fund_balance",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "docs": [
+            "Pre-funded by owner with rent for downstream init_if_needed paths.",
+            "Must be pre-registered as engine operator (one-time set_operator",
+            "call by engine owner)."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  108,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "perp_engine"
+        },
+        {
+          "name": "perp_vault"
+        },
+        {
+          "name": "insurance_fund"
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "min_bad_debt_threshold",
+          "type": "u64"
+        },
+        {
+          "name": "adl_cooldown_secs",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "pause",
+      "discriminator": [
+        211,
+        22,
+        221,
+        251,
+        74,
+        121,
+        193,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "set_adl_enabled",
+      "discriminator": [
+        213,
+        29,
+        148,
+        38,
+        169,
+        239,
+        241,
+        192
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "enabled",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "set_adl_params",
+      "discriminator": [
+        114,
+        5,
+        64,
+        71,
+        97,
+        156,
+        150,
+        233
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "min_bad_debt_threshold",
+          "type": "u64"
+        },
+        {
+          "name": "cooldown_secs",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "set_operator",
+      "discriminator": [
+        238,
+        153,
+        101,
+        169,
+        243,
+        131,
+        36,
+        1
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
+                  116,
+                  111,
+                  114
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "operator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "operator",
+          "type": "pubkey"
+        },
+        {
+          "name": "status",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "transfer_ownership",
+      "discriminator": [
+        65,
+        177,
+        215,
+        73,
+        53,
+        45,
+        99,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "new_owner",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "unpause",
+      "discriminator": [
+        169,
+        144,
+        4,
+        38,
+        10,
+        141,
+        188,
+        255
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "ADLConfig",
+      "discriminator": [
+        186,
+        133,
+        71,
+        0,
+        63,
+        37,
+        127,
+        157
+      ]
+    },
+    {
+      "name": "Operator",
+      "discriminator": [
+        219,
+        31,
+        188,
+        145,
+        69,
+        139,
+        204,
+        117
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "ADLEnabledChanged",
+      "discriminator": [
+        70,
+        52,
+        244,
+        253,
+        243,
+        118,
+        17,
+        216
+      ]
+    },
+    {
+      "name": "ADLExecuted",
+      "discriminator": [
+        137,
+        67,
+        82,
+        113,
+        212,
+        64,
+        252,
+        191
+      ]
+    },
+    {
+      "name": "ADLParamsUpdated",
+      "discriminator": [
+        113,
+        92,
+        224,
+        229,
+        72,
+        5,
+        224,
+        141
+      ]
+    },
+    {
+      "name": "ADLTriggered",
+      "discriminator": [
+        150,
+        241,
+        47,
+        168,
+        46,
+        246,
+        183,
+        253
+      ]
+    },
+    {
+      "name": "OperatorUpdated",
+      "discriminator": [
+        28,
+        104,
+        226,
+        145,
+        253,
+        229,
+        17,
+        245
+      ]
+    },
+    {
+      "name": "OwnershipTransferStarted",
+      "discriminator": [
+        183,
+        253,
+        239,
+        246,
+        140,
+        179,
+        133,
+        105
+      ]
+    },
+    {
+      "name": "OwnershipTransferred",
+      "discriminator": [
+        172,
+        61,
+        205,
+        183,
+        250,
+        50,
+        38,
+        98
+      ]
+    },
+    {
+      "name": "PauseStatusChanged",
+      "discriminator": [
+        79,
+        144,
+        205,
+        195,
+        9,
+        152,
+        146,
+        91
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "NotOwner",
+      "msg": "Caller is not owner"
+    },
+    {
+      "code": 6001,
+      "name": "NotPendingOwner",
+      "msg": "Caller is not pending owner"
+    },
+    {
+      "code": 6002,
+      "name": "NotOperator",
+      "msg": "Caller is not authorized operator"
+    },
+    {
+      "code": 6003,
+      "name": "PausedError",
+      "msg": "ADL is paused"
+    },
+    {
+      "code": 6004,
+      "name": "ZeroAddress",
+      "msg": "Zero address"
+    },
+    {
+      "code": 6005,
+      "name": "ADLDisabled",
+      "msg": "ADL is disabled"
+    },
+    {
+      "code": 6006,
+      "name": "InsuranceFundSufficient",
+      "msg": "Insurance fund balance still above threshold"
+    },
+    {
+      "code": 6007,
+      "name": "CooldownActive",
+      "msg": "Cooldown still active since last ADL event"
+    },
+    {
+      "code": 6008,
+      "name": "BadDebtBelowThreshold",
+      "msg": "Bad debt below activation threshold"
+    },
+    {
+      "code": 6009,
+      "name": "NoPosition",
+      "msg": "No position to deleverage"
+    },
+    {
+      "code": 6010,
+      "name": "MathOverflow",
+      "msg": "Math overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "ADLConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "authority_bump",
+            "docs": [
+              "Bump for the adl_authority PDA — signs CPIs into perp_engine."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "adl_enabled",
+            "type": "bool"
+          },
+          {
+            "name": "min_bad_debt_threshold",
+            "docs": [
+              "Min bad debt (USDC 6 decimals) before ADL can activate."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "adl_cooldown_secs",
+            "docs": [
+              "Cooldown between ADL events (seconds)."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "last_adl_time",
+            "docs": [
+              "Last ADL execution timestamp."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "total_adl_events",
+            "type": "u64"
+          },
+          {
+            "name": "total_bad_debt_covered",
+            "type": "u64"
+          },
+          {
+            "name": "perp_engine",
+            "docs": [
+              "Program ids reserved for v0.3 CPI integration."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "perp_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "insurance_fund",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ADLEnabledChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "enabled",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ADLExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "deleveraged_trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "reduced_size",
+            "type": "i64"
+          },
+          {
+            "name": "close_price",
+            "type": "u64"
+          },
+          {
+            "name": "bad_debt_covered",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ADLParamsUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "min_bad_debt_threshold",
+            "type": "u64"
+          },
+          {
+            "name": "cooldown_secs",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ADLTriggered",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "total_bad_debt",
+            "type": "u64"
+          },
+          {
+            "name": "insurance_fund_balance",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Operator",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "authorized",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OperatorUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "status",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OwnershipTransferStarted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "current_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_owner",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OwnershipTransferred",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_owner",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PauseStatusChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "is_paused",
+            "type": "bool"
+          }
+        ]
+      }
+    }
+  ]
+}

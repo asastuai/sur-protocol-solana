@@ -1,0 +1,2059 @@
+{
+  "address": "BVrt7REAZoCZBEY987fUPEjn2EvnXyaFzpMPVXb81rnq",
+  "metadata": {
+    "name": "a2a_darkpool",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "A2A Dark Pool — agent-to-agent OTC perp matching with persistent reputation. Solana port of SUR Protocol's A2ADarkPool.sol."
+  },
+  "instructions": [
+    {
+      "name": "accept_and_settle",
+      "discriminator": [
+        2,
+        3,
+        111,
+        42,
+        76,
+        102,
+        198,
+        115
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "intent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  116,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "intent.id",
+                "account": "Intent"
+              }
+            ]
+          }
+        },
+        {
+          "name": "response",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  112,
+                  111,
+                  110,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "response.id",
+                "account": "Response"
+              }
+            ]
+          }
+        },
+        {
+          "name": "intent_creator_reputation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  112,
+                  117,
+                  116,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "intent.agent",
+                "account": "Intent"
+              }
+            ]
+          }
+        },
+        {
+          "name": "responder_reputation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  112,
+                  117,
+                  116,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "response.agent",
+                "account": "Response"
+              }
+            ]
+          }
+        },
+        {
+          "name": "intent_creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "darkpool_authority",
+          "docs": [
+            "Mut so it can pay rent for init_if_needed positions in engine.",
+            "Must be pre-funded + pre-registered as operator on both programs."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  114,
+                  107,
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "perp_engine_program"
+        },
+        {
+          "name": "engine_config"
+        },
+        {
+          "name": "engine_market",
+          "writable": true
+        },
+        {
+          "name": "buyer_position",
+          "writable": true
+        },
+        {
+          "name": "seller_position",
+          "writable": true
+        },
+        {
+          "name": "buyer_trader"
+        },
+        {
+          "name": "seller_trader"
+        },
+        {
+          "name": "engine_operator_account"
+        },
+        {
+          "name": "engine_authority"
+        },
+        {
+          "name": "engine_vault_operator"
+        },
+        {
+          "name": "engine_pool_balance",
+          "writable": true
+        },
+        {
+          "name": "perp_vault_program"
+        },
+        {
+          "name": "vault_config"
+        },
+        {
+          "name": "vault_operator_account"
+        },
+        {
+          "name": "buyer_balance",
+          "writable": true
+        },
+        {
+          "name": "seller_balance",
+          "writable": true
+        },
+        {
+          "name": "fee_recipient_balance",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "accept_ownership",
+      "discriminator": [
+        172,
+        23,
+        43,
+        13,
+        238,
+        213,
+        85,
+        150
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_owner",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancel_intent",
+      "discriminator": [
+        67,
+        73,
+        238,
+        244,
+        208,
+        89,
+        225,
+        59
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "intent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  116,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "intent.id",
+                "account": "Intent"
+              }
+            ]
+          }
+        },
+        {
+          "name": "reputation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  112,
+                  117,
+                  116,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent"
+              }
+            ]
+          }
+        },
+        {
+          "name": "agent",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancel_response",
+      "discriminator": [
+        24,
+        134,
+        17,
+        237,
+        161,
+        162,
+        94,
+        141
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "response",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  112,
+                  111,
+                  110,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "response.id",
+                "account": "Response"
+              }
+            ]
+          }
+        },
+        {
+          "name": "reputation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  112,
+                  117,
+                  116,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "responder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "responder",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "fee_recipient",
+          "docs": [
+            "at settlement time once the vault program is wired in."
+          ]
+        },
+        {
+          "name": "perp_engine"
+        },
+        {
+          "name": "perp_vault"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "fee_bps",
+          "type": "u64"
+        },
+        {
+          "name": "large_trade_threshold",
+          "type": "u64"
+        },
+        {
+          "name": "large_trade_min_reputation",
+          "type": "u64"
+        },
+        {
+          "name": "min_intent_duration",
+          "type": "i64"
+        },
+        {
+          "name": "max_intent_duration",
+          "type": "i64"
+        },
+        {
+          "name": "response_cooldown",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "pause",
+      "discriminator": [
+        211,
+        22,
+        221,
+        251,
+        74,
+        121,
+        193,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "post_intent",
+      "discriminator": [
+        61,
+        17,
+        66,
+        28,
+        219,
+        69,
+        121,
+        52
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "intent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  116,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config.next_intent_id",
+                "account": "DarkPoolConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "reputation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  112,
+                  117,
+                  116,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent"
+              }
+            ]
+          }
+        },
+        {
+          "name": "agent",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "market_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "is_buy",
+          "type": "bool"
+        },
+        {
+          "name": "size",
+          "type": "u64"
+        },
+        {
+          "name": "min_price",
+          "type": "u64"
+        },
+        {
+          "name": "max_price",
+          "type": "u64"
+        },
+        {
+          "name": "duration",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "post_response",
+      "discriminator": [
+        194,
+        115,
+        73,
+        109,
+        221,
+        73,
+        216,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "intent",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  116,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "intent.id",
+                "account": "Intent"
+              }
+            ]
+          }
+        },
+        {
+          "name": "response",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  112,
+                  111,
+                  110,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config.next_response_id",
+                "account": "DarkPoolConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "reputation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  112,
+                  117,
+                  116,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "responder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "responder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "price",
+          "type": "u64"
+        },
+        {
+          "name": "duration",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "set_fee_bps",
+      "discriminator": [
+        2,
+        161,
+        245,
+        141,
+        111,
+        32,
+        39,
+        198
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "new_fee_bps",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "set_fee_recipient",
+      "discriminator": [
+        227,
+        18,
+        215,
+        42,
+        237,
+        246,
+        151,
+        66
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "new_recipient",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_large_trade_min_reputation",
+      "discriminator": [
+        64,
+        107,
+        107,
+        94,
+        234,
+        84,
+        225,
+        145
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "min_rep",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "set_large_trade_threshold",
+      "discriminator": [
+        254,
+        1,
+        219,
+        97,
+        67,
+        110,
+        39,
+        89
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "threshold",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "transfer_ownership",
+      "discriminator": [
+        65,
+        177,
+        215,
+        73,
+        53,
+        45,
+        99,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "new_owner",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "unpause",
+      "discriminator": [
+        169,
+        144,
+        4,
+        38,
+        10,
+        141,
+        188,
+        255
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "AgentReputation",
+      "discriminator": [
+        245,
+        56,
+        239,
+        246,
+        36,
+        231,
+        227,
+        67
+      ]
+    },
+    {
+      "name": "DarkPoolConfig",
+      "discriminator": [
+        147,
+        30,
+        227,
+        106,
+        130,
+        184,
+        204,
+        12
+      ]
+    },
+    {
+      "name": "Intent",
+      "discriminator": [
+        247,
+        162,
+        35,
+        165,
+        254,
+        111,
+        129,
+        109
+      ]
+    },
+    {
+      "name": "Response",
+      "discriminator": [
+        198,
+        155,
+        246,
+        149,
+        75,
+        240,
+        81,
+        122
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "A2ATradeSettled",
+      "discriminator": [
+        118,
+        232,
+        51,
+        119,
+        186,
+        221,
+        207,
+        14
+      ]
+    },
+    {
+      "name": "FeeBpsUpdated",
+      "discriminator": [
+        151,
+        59,
+        111,
+        165,
+        241,
+        143,
+        149,
+        117
+      ]
+    },
+    {
+      "name": "FeeRecipientUpdated",
+      "discriminator": [
+        24,
+        150,
+        233,
+        92,
+        169,
+        221,
+        233,
+        244
+      ]
+    },
+    {
+      "name": "IntentCancelled",
+      "discriminator": [
+        39,
+        174,
+        74,
+        165,
+        39,
+        101,
+        119,
+        29
+      ]
+    },
+    {
+      "name": "IntentPosted",
+      "discriminator": [
+        138,
+        34,
+        58,
+        43,
+        15,
+        196,
+        194,
+        30
+      ]
+    },
+    {
+      "name": "LargeTradeMinReputationUpdated",
+      "discriminator": [
+        238,
+        51,
+        76,
+        4,
+        72,
+        232,
+        167,
+        112
+      ]
+    },
+    {
+      "name": "LargeTradeThresholdUpdated",
+      "discriminator": [
+        41,
+        125,
+        240,
+        104,
+        65,
+        194,
+        239,
+        208
+      ]
+    },
+    {
+      "name": "OwnershipTransferStarted",
+      "discriminator": [
+        183,
+        253,
+        239,
+        246,
+        140,
+        179,
+        133,
+        105
+      ]
+    },
+    {
+      "name": "OwnershipTransferred",
+      "discriminator": [
+        172,
+        61,
+        205,
+        183,
+        250,
+        50,
+        38,
+        98
+      ]
+    },
+    {
+      "name": "ParameterBump",
+      "discriminator": [
+        208,
+        156,
+        82,
+        233,
+        220,
+        173,
+        178,
+        254
+      ]
+    },
+    {
+      "name": "PauseStatusChanged",
+      "discriminator": [
+        79,
+        144,
+        205,
+        195,
+        9,
+        152,
+        146,
+        91
+      ]
+    },
+    {
+      "name": "ReputationUpdated",
+      "discriminator": [
+        26,
+        36,
+        187,
+        150,
+        235,
+        90,
+        106,
+        89
+      ]
+    },
+    {
+      "name": "ResponseCancelled",
+      "discriminator": [
+        220,
+        59,
+        105,
+        220,
+        32,
+        38,
+        107,
+        98
+      ]
+    },
+    {
+      "name": "ResponsePosted",
+      "discriminator": [
+        40,
+        218,
+        61,
+        130,
+        75,
+        26,
+        184,
+        199
+      ]
+    },
+    {
+      "name": "SettlementPreviewMode",
+      "discriminator": [
+        21,
+        9,
+        179,
+        42,
+        179,
+        207,
+        186,
+        104
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "NotOwner",
+      "msg": "Caller is not owner"
+    },
+    {
+      "code": 6001,
+      "name": "NotPendingOwner",
+      "msg": "Caller is not pending owner"
+    },
+    {
+      "code": 6002,
+      "name": "PausedError",
+      "msg": "Program is paused"
+    },
+    {
+      "code": 6003,
+      "name": "ZeroAddress",
+      "msg": "Zero address provided"
+    },
+    {
+      "code": 6004,
+      "name": "ZeroAmount",
+      "msg": "Zero amount provided"
+    },
+    {
+      "code": 6005,
+      "name": "IntentExpired",
+      "msg": "Intent expired"
+    },
+    {
+      "code": 6006,
+      "name": "IntentNotOpen",
+      "msg": "Intent not in Open status"
+    },
+    {
+      "code": 6007,
+      "name": "NotIntentCreator",
+      "msg": "Caller is not intent creator"
+    },
+    {
+      "code": 6008,
+      "name": "NotResponseCreator",
+      "msg": "Caller is not response creator"
+    },
+    {
+      "code": 6009,
+      "name": "PriceOutOfRange",
+      "msg": "Price out of range"
+    },
+    {
+      "code": 6010,
+      "name": "SelfTrade",
+      "msg": "Self trade not allowed"
+    },
+    {
+      "code": 6011,
+      "name": "InsufficientReputation",
+      "msg": "Insufficient reputation for this trade size"
+    },
+    {
+      "code": 6012,
+      "name": "CooldownActive",
+      "msg": "Response cooldown active"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidPriceRange",
+      "msg": "min_price > max_price"
+    },
+    {
+      "code": 6014,
+      "name": "InvalidDuration",
+      "msg": "Invalid duration (out of bounds)"
+    },
+    {
+      "code": 6015,
+      "name": "ResponseNotPending",
+      "msg": "Response not in Pending status"
+    },
+    {
+      "code": 6016,
+      "name": "ResponseExpired",
+      "msg": "Response expired"
+    },
+    {
+      "code": 6017,
+      "name": "ResponseIntentMismatch",
+      "msg": "Response intent_id mismatch"
+    },
+    {
+      "code": 6018,
+      "name": "FeeBpsTooHigh",
+      "msg": "Fee bps exceeds maximum (50)"
+    },
+    {
+      "code": 6019,
+      "name": "MathOverflow",
+      "msg": "Math overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "A2ATradeSettled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "intent_id",
+            "type": "u64"
+          },
+          {
+            "name": "response_id",
+            "type": "u64"
+          },
+          {
+            "name": "buyer",
+            "type": "pubkey"
+          },
+          {
+            "name": "seller",
+            "type": "pubkey"
+          },
+          {
+            "name": "market_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "size",
+            "type": "u64"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AgentReputation",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "agent",
+            "type": "pubkey"
+          },
+          {
+            "name": "completed_trades",
+            "type": "u64"
+          },
+          {
+            "name": "total_volume",
+            "type": "u64"
+          },
+          {
+            "name": "expired_intents",
+            "type": "u64"
+          },
+          {
+            "name": "cancelled_responses",
+            "type": "u64"
+          },
+          {
+            "name": "first_trade_at",
+            "type": "i64"
+          },
+          {
+            "name": "last_trade_at",
+            "type": "i64"
+          },
+          {
+            "name": "last_response_time",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DarkPoolConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "fee_bps",
+            "type": "u64"
+          },
+          {
+            "name": "fee_recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "min_intent_duration",
+            "type": "i64"
+          },
+          {
+            "name": "max_intent_duration",
+            "type": "i64"
+          },
+          {
+            "name": "response_cooldown",
+            "type": "i64"
+          },
+          {
+            "name": "large_trade_threshold",
+            "type": "u64"
+          },
+          {
+            "name": "large_trade_min_reputation",
+            "type": "u64"
+          },
+          {
+            "name": "next_intent_id",
+            "type": "u64"
+          },
+          {
+            "name": "next_response_id",
+            "type": "u64"
+          },
+          {
+            "name": "perp_engine",
+            "type": "pubkey"
+          },
+          {
+            "name": "perp_vault",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeeBpsUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_fee_bps",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeeRecipientUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_recipient",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Intent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "agent",
+            "type": "pubkey"
+          },
+          {
+            "name": "market_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "is_buy",
+            "type": "bool"
+          },
+          {
+            "name": "size",
+            "type": "u64"
+          },
+          {
+            "name": "min_price",
+            "type": "u64"
+          },
+          {
+            "name": "max_price",
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "IntentStatus"
+              }
+            }
+          },
+          {
+            "name": "filled_response_id",
+            "type": "u64"
+          },
+          {
+            "name": "fee_bps_at_post",
+            "docs": [
+              "Fee in bps snapshotted at intent post time.",
+              "Mirrors Solidity Mapping 3 prospective-only convention: settlement",
+              "uses this value, NOT the current config.fee_bps. Admin bumps to",
+              "fee_bps do not retroactively alter fees on intents already posted."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "IntentCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "intent_id",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "IntentPosted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "intent_id",
+            "type": "u64"
+          },
+          {
+            "name": "agent",
+            "type": "pubkey"
+          },
+          {
+            "name": "market_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "is_buy",
+            "type": "bool"
+          },
+          {
+            "name": "size",
+            "type": "u64"
+          },
+          {
+            "name": "min_price",
+            "type": "u64"
+          },
+          {
+            "name": "max_price",
+            "type": "u64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "IntentStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Open"
+          },
+          {
+            "name": "Filled"
+          },
+          {
+            "name": "Cancelled"
+          },
+          {
+            "name": "Expired"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LargeTradeMinReputationUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_min_reputation",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LargeTradeThresholdUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_threshold",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OwnershipTransferStarted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "current_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_owner",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OwnershipTransferred",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_owner",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ParameterBump",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "param_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "old_value",
+            "type": "bytes"
+          },
+          {
+            "name": "new_value",
+            "type": "bytes"
+          },
+          {
+            "name": "effective_slot",
+            "type": "u64"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PauseStatusChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "is_paused",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ReputationUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "agent",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_score",
+            "type": "u64"
+          },
+          {
+            "name": "completed_trades",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Response",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "intent_id",
+            "type": "u64"
+          },
+          {
+            "name": "agent",
+            "type": "pubkey"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "ResponseStatus"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResponseCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "response_id",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResponsePosted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "response_id",
+            "type": "u64"
+          },
+          {
+            "name": "intent_id",
+            "type": "u64"
+          },
+          {
+            "name": "responder",
+            "type": "pubkey"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResponseStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Accepted"
+          },
+          {
+            "name": "Cancelled"
+          },
+          {
+            "name": "Expired"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SettlementPreviewMode",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "intent_id",
+            "type": "u64"
+          },
+          {
+            "name": "response_id",
+            "type": "u64"
+          },
+          {
+            "name": "fee_per_side_uncollected",
+            "type": "u64"
+          },
+          {
+            "name": "note",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  ]
+}

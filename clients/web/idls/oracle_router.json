@@ -1,0 +1,1281 @@
+{
+  "address": "CC5Xc5DTyLSfcw3MiXbyJQyRA21mh3Shup6bgMH8WGSS",
+  "metadata": {
+    "name": "oracle_router",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "SUR Protocol — OracleRouter. Solana port of OracleRouter.sol. Validates price updates with staleness, confidence, deviation, and circuit-breaker rules; pushes mark+index prices to perp_engine. v0.2 ships with operator-pushed prices (Pyth-account integration deferred to v0.2.X)."
+  },
+  "instructions": [
+    {
+      "name": "accept_ownership",
+      "discriminator": [
+        172,
+        23,
+        43,
+        13,
+        238,
+        213,
+        85,
+        150
+      ],
+      "accounts": [
+        {
+          "name": "oracle_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_owner",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "configure_feed",
+      "discriminator": [
+        148,
+        186,
+        157,
+        93,
+        231,
+        55,
+        200,
+        6
+      ],
+      "accounts": [
+        {
+          "name": "oracle_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "feed",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  100
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "market_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "oracle_config"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "market_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "pyth_feed",
+          "type": "pubkey"
+        },
+        {
+          "name": "max_staleness_seconds",
+          "type": "i64"
+        },
+        {
+          "name": "max_deviation_bps",
+          "type": "u64"
+        },
+        {
+          "name": "max_confidence_bps",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "deactivate_feed",
+      "discriminator": [
+        182,
+        149,
+        189,
+        108,
+        44,
+        58,
+        204,
+        154
+      ],
+      "accounts": [
+        {
+          "name": "oracle_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "feed",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "oracle_config"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "oracle_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "cooldown_secs",
+          "type": "i64"
+        },
+        {
+          "name": "max_price_change_bps",
+          "type": "u64"
+        },
+        {
+          "name": "required_good_prices_for_reset",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "push_price",
+      "discriminator": [
+        113,
+        238,
+        232,
+        235,
+        60,
+        71,
+        127,
+        203
+      ],
+      "accounts": [
+        {
+          "name": "oracle_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "feed",
+          "writable": true
+        },
+        {
+          "name": "operator_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
+                  116,
+                  111,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator",
+          "signer": true
+        },
+        {
+          "name": "oracle_authority",
+          "docs": [
+            "Must be pre-registered as operator on perp_engine for the CPI to succeed."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "perp_engine_program"
+        },
+        {
+          "name": "engine_config"
+        },
+        {
+          "name": "engine_market",
+          "writable": true
+        },
+        {
+          "name": "engine_operator_account"
+        }
+      ],
+      "args": [
+        {
+          "name": "mark_price",
+          "type": "u64"
+        },
+        {
+          "name": "index_price",
+          "type": "u64"
+        },
+        {
+          "name": "source",
+          "type": "u8"
+        },
+        {
+          "name": "publish_timestamp",
+          "type": "i64"
+        },
+        {
+          "name": "confidence_bps",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "reset_circuit_breaker",
+      "discriminator": [
+        225,
+        48,
+        84,
+        136,
+        90,
+        146,
+        26,
+        149
+      ],
+      "accounts": [
+        {
+          "name": "oracle_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "oracle_config"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "set_circuit_breaker_params",
+      "discriminator": [
+        64,
+        193,
+        56,
+        46,
+        51,
+        224,
+        112,
+        230
+      ],
+      "accounts": [
+        {
+          "name": "oracle_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "oracle_config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "cooldown_secs",
+          "type": "i64"
+        },
+        {
+          "name": "max_change_bps",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "set_operator",
+      "discriminator": [
+        238,
+        153,
+        101,
+        169,
+        243,
+        131,
+        36,
+        1
+      ],
+      "accounts": [
+        {
+          "name": "oracle_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
+                  116,
+                  111,
+                  114
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "operator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "oracle_config"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "operator",
+          "type": "pubkey"
+        },
+        {
+          "name": "status",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "transfer_ownership",
+      "discriminator": [
+        65,
+        177,
+        215,
+        73,
+        53,
+        45,
+        99,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "oracle_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "oracle_config"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "new_owner",
+          "type": "pubkey"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "FeedConfig",
+      "discriminator": [
+        75,
+        97,
+        12,
+        15,
+        89,
+        221,
+        78,
+        71
+      ]
+    },
+    {
+      "name": "Operator",
+      "discriminator": [
+        219,
+        31,
+        188,
+        145,
+        69,
+        139,
+        204,
+        117
+      ]
+    },
+    {
+      "name": "OracleConfig",
+      "discriminator": [
+        133,
+        196,
+        152,
+        50,
+        27,
+        21,
+        145,
+        254
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "DeviationWarning",
+      "discriminator": [
+        17,
+        243,
+        194,
+        250,
+        169,
+        243,
+        94,
+        167
+      ]
+    },
+    {
+      "name": "FeedConfigured",
+      "discriminator": [
+        18,
+        23,
+        81,
+        38,
+        11,
+        227,
+        187,
+        164
+      ]
+    },
+    {
+      "name": "FeedDeactivated",
+      "discriminator": [
+        82,
+        150,
+        135,
+        228,
+        218,
+        82,
+        248,
+        115
+      ]
+    },
+    {
+      "name": "OperatorUpdated",
+      "discriminator": [
+        28,
+        104,
+        226,
+        145,
+        253,
+        229,
+        17,
+        245
+      ]
+    },
+    {
+      "name": "OracleCircuitBreakerReset",
+      "discriminator": [
+        253,
+        84,
+        6,
+        212,
+        152,
+        42,
+        144,
+        100
+      ]
+    },
+    {
+      "name": "OracleCircuitBreakerTriggered",
+      "discriminator": [
+        133,
+        204,
+        251,
+        99,
+        50,
+        221,
+        143,
+        230
+      ]
+    },
+    {
+      "name": "OwnershipTransferStarted",
+      "discriminator": [
+        183,
+        253,
+        239,
+        246,
+        140,
+        179,
+        133,
+        105
+      ]
+    },
+    {
+      "name": "OwnershipTransferred",
+      "discriminator": [
+        172,
+        61,
+        205,
+        183,
+        250,
+        50,
+        38,
+        98
+      ]
+    },
+    {
+      "name": "PricePushPreviewMode",
+      "discriminator": [
+        8,
+        58,
+        113,
+        190,
+        180,
+        116,
+        108,
+        198
+      ]
+    },
+    {
+      "name": "PriceUpdated",
+      "discriminator": [
+        154,
+        72,
+        87,
+        150,
+        246,
+        230,
+        23,
+        217
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "NotOwner",
+      "msg": "Caller is not owner"
+    },
+    {
+      "code": 6001,
+      "name": "NotPendingOwner",
+      "msg": "Caller is not pending owner"
+    },
+    {
+      "code": 6002,
+      "name": "NotOperator",
+      "msg": "Caller is not an authorized operator"
+    },
+    {
+      "code": 6003,
+      "name": "ZeroAddress",
+      "msg": "Zero address provided"
+    },
+    {
+      "code": 6004,
+      "name": "FeedNotConfigured",
+      "msg": "Feed not configured for this market"
+    },
+    {
+      "code": 6005,
+      "name": "PriceStale",
+      "msg": "Price is stale (older than max_staleness_seconds)"
+    },
+    {
+      "code": 6006,
+      "name": "PriceNegativeOrZero",
+      "msg": "Price is negative or zero"
+    },
+    {
+      "code": 6007,
+      "name": "PriceDeviationTooHigh",
+      "msg": "Price deviation between sources exceeds max"
+    },
+    {
+      "code": 6008,
+      "name": "ConfidenceTooWide",
+      "msg": "Pyth confidence interval too wide"
+    },
+    {
+      "code": 6009,
+      "name": "OracleCircuitBreakerActive",
+      "msg": "Oracle circuit breaker is active"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidCooldown",
+      "msg": "Invalid cooldown (must be in [60, 86400] seconds)"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidMaxChangeBps",
+      "msg": "Invalid max_price_change_bps (must be in [100, 10000])"
+    },
+    {
+      "code": 6012,
+      "name": "MathOverflow",
+      "msg": "Math overflow"
+    },
+    {
+      "code": 6013,
+      "name": "FutureTimestamp",
+      "msg": "Future timestamp not allowed"
+    }
+  ],
+  "types": [
+    {
+      "name": "DeviationWarning",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "primary_price",
+            "type": "u64"
+          },
+          {
+            "name": "secondary_price",
+            "type": "u64"
+          },
+          {
+            "name": "deviation_bps",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeedConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "market_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "pyth_feed",
+            "docs": [
+              "Pyth price feed account on Solana (set to default Pubkey to use external operator price)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "max_staleness_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "max_deviation_bps",
+            "docs": [
+              "Max allowed deviation between Pyth and a secondary source (Switchboard later).",
+              "Currently informational; activated when secondary source lands in v0.2.X."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "max_confidence_bps",
+            "docs": [
+              "Max Pyth confidence interval as % of price."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "name": "last_price",
+            "docs": [
+              "Last pushed price (mark) + timestamp for change-detection + CB."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "last_price_timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeedConfigured",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "pyth_feed",
+            "type": "pubkey"
+          },
+          {
+            "name": "max_staleness_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "max_deviation_bps",
+            "type": "u64"
+          },
+          {
+            "name": "max_confidence_bps",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeedDeactivated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Operator",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "authorized",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OperatorUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "status",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OracleCircuitBreakerReset",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OracleCircuitBreakerTriggered",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "old_price",
+            "type": "u64"
+          },
+          {
+            "name": "new_price",
+            "type": "u64"
+          },
+          {
+            "name": "change_bps",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OracleConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "circuit_breaker_active",
+            "docs": [
+              "Whether trading should pause due to oracle anomaly."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "circuit_breaker_triggered_at",
+            "type": "i64"
+          },
+          {
+            "name": "cooldown_secs",
+            "type": "i64"
+          },
+          {
+            "name": "max_price_change_bps",
+            "docs": [
+              "Max price change per update in BPS — larger moves trigger CB."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "good_price_count_after_cb",
+            "docs": [
+              "Required consecutive good prices before auto-resetting CB (M-17 fix preserved)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "required_good_prices_for_reset",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OwnershipTransferStarted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "current_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_owner",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OwnershipTransferred",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "previous_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_owner",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PricePushPreviewMode",
+      "docs": [
+        "v0.2 stub-mode marker (mirrors SettlementPreviewMode in a2a_darkpool).",
+        "Indexers should flag `PriceUpdated` events paired with this marker as",
+        "not-yet-pushed-to-engine, since perp_engine CPI lands in v0.2.X."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "mark_price",
+            "type": "u64"
+          },
+          {
+            "name": "index_price",
+            "type": "u64"
+          },
+          {
+            "name": "note",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PriceUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "mark_price",
+            "type": "u64"
+          },
+          {
+            "name": "index_price",
+            "type": "u64"
+          },
+          {
+            "name": "source",
+            "type": "u8"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ]
+}

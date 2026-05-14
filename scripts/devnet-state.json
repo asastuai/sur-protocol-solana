@@ -1,0 +1,58 @@
+{
+  "usdcMint": "531Kuibtkhht9sZiqaoYRGm8c6agQz9iScZQEDctokEn",
+  "markets": [
+    {
+      "symbol": "BTC-USD",
+      "marketId": "4254432d55534400000000000000000000000000000000000000000000000000",
+      "oracle": "HovQMDrbAgAYPCmHVSrezcSmkMtXSSUsLDFANExrZh2J"
+    },
+    {
+      "symbol": "SOL-USD",
+      "marketId": "534f4c2d55534400000000000000000000000000000000000000000000000000",
+      "oracle": "J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVFvy"
+    },
+    {
+      "symbol": "ETH-USD",
+      "marketId": "4554482d55534400000000000000000000000000000000000000000000000000",
+      "oracle": "EdVCmQ9FSPcVe5YySXDPCRmc8aDQLKJ9xvYBMZPie1Vw"
+    }
+  ],
+  "deployer": "4gAdo7R69XgZJ2QazB1N2o21nfY2gjto9KijUDzjg6kv",
+  "initializedAt": "2026-05-14T02:13:31.571Z",
+  "steps": {
+    "perp_vault.initialize": "skipped",
+    "oracle_router.initialize": "ok",
+    "perp_engine.initialize": "ok",
+    "sur_timelock.initialize": "ok",
+    "a2a_darkpool.initialize": "ok",
+    "liquidator.initialize": "ok",
+    "insurance_fund.initialize": "ok",
+    "auto_deleveraging.initialize": "ok",
+    "collateral_manager.initialize": "ok",
+    "trading_vault.initialize": "ok",
+    "order_settlement.initialize": "ok",
+    "vault.set_operator.engine_authority": "ok",
+    "vault.set_operator.insurance_fund_authority": "ok",
+    "vault.set_operator.collateral_manager_authority": "ok",
+    "vault.set_operator.trading_vault_authority": "ok",
+    "vault.set_operator.order_settlement_authority": "ok",
+    "vault.set_operator.a2a_darkpool_authority": "ok",
+    "engine.set_operator.liquidator_authority": "ok",
+    "engine.set_operator.adl_authority": "ok",
+    "engine.set_operator.order_settlement_authority": "ok",
+    "engine.set_operator.trading_vault_authority": "ok",
+    "engine.set_operator.a2a_darkpool_authority": "ok",
+    "engine.set_operator.oracle_authority": "ok",
+    "engine.set_operator.deployer (v1 direct)": "ok",
+    "oracle_router.set_operator.deployer": "ok",
+    "perp_engine.bootstrap_engine_pool": "ok",
+    "insurance_fund.bootstrap_insurance_pool": "ok",
+    "engine.add_market.BTC-USD": "ok",
+    "engine.add_market.SOL-USD": "ok",
+    "engine.add_market.ETH-USD": "ok",
+    "engine.update_mark_price.BTC-USD": "ok",
+    "engine.update_mark_price.SOL-USD": "ok",
+    "engine.update_mark_price.ETH-USD": "ok",
+    "mint_test_usdc": "skipped"
+  }
+}

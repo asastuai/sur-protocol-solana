@@ -1,0 +1,94 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root,
+[data-theme="dark"] {
+  --sur-bg: #0B0E11;
+  --sur-surface: #12161C;
+  --sur-border: #1E2329;
+  --sur-text: #EAECEF;
+  --sur-muted: #848E9C;
+  --sur-accent: #1E80FF;
+  --sur-green: #0ECB81;
+  --sur-red: #F6465D;
+  --sur-yellow: #F0B90B;
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --sur-bg: #f5f5f7;
+  --sur-surface: #ffffff;
+  --sur-border: #e2e4e9;
+  --sur-text: #1a1b1e;
+  --sur-muted: #8b929e;
+  --sur-accent: #0052FF;
+  --sur-green: #1a7f37;
+  --sur-red: #cf222e;
+  --sur-yellow: #9a6700;
+  color-scheme: light;
+}
+
+@layer base {
+  html, body { height: 100%; }
+  body {
+    @apply bg-sur-bg text-sur-text antialiased;
+    font-family: "Inter", "DM Sans", system-ui, sans-serif;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--sur-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--sur-muted); }
+
+/* Live data pulse */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.live-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+/* Panel header convention from reference */
+.panel-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--sur-border);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sur-muted);
+}
+
+/* Light-theme small overrides for white/* hovers used in components */
+[data-theme="light"] .hover\:bg-white\/\[0\.02\]:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.03\]:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.04\]:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.06\]:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.08\]:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+[data-theme="light"] .bg-white\/\[0\.04\],
+[data-theme="light"] .bg-white\/\[0\.06\],
+[data-theme="light"] .bg-white\/\[0\.08\] {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Wallet adapter button — match SUR look */
+.wallet-adapter-button {
+  background-color: var(--sur-accent) !important;
+  border-radius: 0.5rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  height: 32px !important;
+  padding: 0 1rem !important;
+  line-height: 1 !important;
+  font-family: "Inter", "DM Sans", system-ui, sans-serif !important;
+}
+.wallet-adapter-button:not([disabled]):hover {
+  background-color: var(--sur-accent) !important;
+  filter: brightness(1.1);
+}
