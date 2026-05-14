@@ -67,3 +67,24 @@ pub struct OwnershipTransferred {
     pub previous_owner: Pubkey,
     pub new_owner: Pubkey,
 }
+
+#[event]
+pub struct BadDebt {
+    pub market_id: [u8; 32],
+    pub trader: Pubkey,
+    /// Shortfall amount (absolute). Solidity: loss - releasedMargin (close)
+    /// or -effectiveMargin (liquidate).
+    pub amount: u64,
+    /// Liquidation = true; ordinary close with bad debt = false.
+    pub via_liquidation: bool,
+}
+
+#[event]
+pub struct LiquidationDistributed {
+    pub market_id: [u8; 32],
+    pub trader: Pubkey,
+    pub keeper: Pubkey,
+    pub keeper_reward: u64,
+    pub insurance_payout: u64,
+    pub bad_debt: u64,
+}

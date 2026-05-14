@@ -1,5 +1,7 @@
 pub mod admin;
+pub mod bootstrap_pool;
 pub mod close_position;
+pub mod cpi_util;
 pub mod liquidate_position;
 pub mod market;
 pub mod open_position;
@@ -7,6 +9,7 @@ pub mod operator_admin;
 pub mod update_mark_price;
 
 pub use admin::*;
+pub use bootstrap_pool::*;
 pub use close_position::*;
 pub use liquidate_position::*;
 pub use market::*;

@@ -3,9 +3,10 @@
 //! Solana port of AutoDeleveraging.sol. Forcibly closes opposite-sign
 //! portions of profitable positions to absorb bad debt.
 //!
-//! v0.2.3 ships state tracking + cooldown enforcement + event emission.
-//! engine.open_position CPI to actually close the position lands in v0.3
-//! using the same manual invoke_signed pattern as liquidator/darkpool.
+//! v0.3 wiring #2: execute_adl fires real CPI to perp_engine.open_position
+//! (forced reduce on the profitable counterparty), signed by `adl_authority`
+//! PDA which is registered as an engine operator. Vault remaining_accounts
+//! forwarded so engine's internal vault CPI fires when needed.
 //!
 //! Source: github.com/asastuai/sur-protocol/blob/master/contracts/src/AutoDeleveraging.sol
 
@@ -33,8 +34,8 @@ pub mod auto_deleveraging {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn execute_adl(
-        ctx: Context<ExecuteADL>,
+    pub fn execute_adl<'info>(
+        ctx: Context<'_, '_, '_, 'info, ExecuteADL<'info>>,
         market_id: [u8; 32],
         trader: Pubkey,
         position_size: i64,

@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",
-    "@solana/web3.js": "^1.95.0",
-    "@solana/spl-token": "^0.4.9"
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.95.0"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.5",
@@ -22,6 +22,7 @@
     "mocha": "^10.7.0",
     "prettier": "^3.3.3",
     "ts-mocha": "^10.0.0",
+    "tweetnacl": "^1.0.3",
     "typescript": "^5.5.4"
   }
 }

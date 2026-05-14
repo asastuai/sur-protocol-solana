@@ -5,6 +5,8 @@ pub const ONE_DAY_SECS: i64 = 24 * 60 * 60;
 #[account]
 pub struct InsuranceFundConfig {
     pub bump: u8,
+    /// Bump for the insurance_fund_authority PDA — signs CPIs into perp_vault.
+    pub authority_bump: u8,
     pub owner: Pubkey,
     pub pending_owner: Pubkey,
     pub paused: bool,
@@ -33,8 +35,8 @@ impl InsuranceFundConfig {
     pub const SEED: &'static [u8] = b"insurance_fund_config";
     pub const AUTHORITY_SEED: &'static [u8] = b"insurance_fund_authority";
 
-    // 8 (disc) + 1 (bump) + 32*3 (pubkeys) + 1 (paused) + 8*7 (u64) + 8 (i64)
-    pub const SIZE: usize = 8 + 1 + 32 + 32 + 1 + 32 + 8 + 8 + 8 + 8 + 8 + 8 + 8;
+    // 8 (disc) + 1 (bump) + 1 (authority_bump) + 32*3 (pubkeys) + 1 (paused) + 8*7 (u64) + 8 (i64)
+    pub const SIZE: usize = 8 + 1 + 1 + 32 + 32 + 1 + 32 + 8 + 8 + 8 + 8 + 8 + 8 + 8;
 }
 
 #[account]

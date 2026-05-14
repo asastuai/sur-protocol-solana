@@ -79,6 +79,10 @@ pub mod perp_engine {
         instructions::close_position::handler(ctx, fill_price)
     }
 
+    pub fn bootstrap_engine_pool(ctx: Context<BootstrapEnginePool>, amount: u64) -> Result<()> {
+        instructions::bootstrap_pool::handler(ctx, amount)
+    }
+
     pub fn liquidate_position(ctx: Context<LiquidatePosition>) -> Result<()> {
         instructions::liquidate_position::handler(ctx)
     }

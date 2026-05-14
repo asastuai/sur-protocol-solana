@@ -113,6 +113,15 @@ pub struct AcceptAndSettle<'info> {
     /// CHECK: engine operator PDA for darkpool_authority.
     pub engine_operator_account: UncheckedAccount<'info>,
 
+    // ====== engine_authority + its vault wiring (forwarded into engine.open_position via remaining_accounts) ======
+    /// CHECK: engine_authority PDA — engine signs its internal vault.internal_transfer as this PDA.
+    pub engine_authority: UncheckedAccount<'info>,
+    /// CHECK: vault Operator PDA for engine_authority (registered during 02_perp_engine setup).
+    pub engine_vault_operator: UncheckedAccount<'info>,
+    /// CHECK: engine_authority's vault AccountBalance PDA (margin pool destination, mut).
+    #[account(mut)]
+    pub engine_pool_balance: UncheckedAccount<'info>,
+
     // ========== perp_vault accounts (validated at vault CPI entry) ==========
     /// CHECK: perp_vault program id.
     pub perp_vault_program: UncheckedAccount<'info>,
@@ -200,6 +209,8 @@ pub(crate) fn handler(ctx: Context<AcceptAndSettle>) -> Result<()> {
     let buyer_size_delta: i64 = i64::try_from(size).map_err(|_| DarkPoolError::MathOverflow)?;
 
     // ---- CPI #1: engine.open_position(buyer, +size, price) ----
+    // Forward vault accounts so engine's internal margin-lock CPI fires
+    // (v0.3.1 wiring; engine open_position.rs file header for order).
     invoke_engine_open_position(
         &ctx.accounts.perp_engine_program,
         &ctx.accounts.engine_config,
@@ -209,6 +220,13 @@ pub(crate) fn handler(ctx: Context<AcceptAndSettle>) -> Result<()> {
         &ctx.accounts.engine_operator_account,
         &ctx.accounts.darkpool_authority,
         &ctx.accounts.system_program.to_account_info(),
+        // engine-vault remaining_accounts:
+        &ctx.accounts.engine_authority,
+        &ctx.accounts.perp_vault_program,
+        &ctx.accounts.vault_config,
+        &ctx.accounts.engine_vault_operator,
+        &ctx.accounts.buyer_balance,        // src_balance for buyer's margin
+        &ctx.accounts.engine_pool_balance,  // dst pool
         buyer_size_delta,
         price,
         auth_seeds,
@@ -224,6 +242,13 @@ pub(crate) fn handler(ctx: Context<AcceptAndSettle>) -> Result<()> {
         &ctx.accounts.engine_operator_account,
         &ctx.accounts.darkpool_authority,
         &ctx.accounts.system_program.to_account_info(),
+        // engine-vault remaining_accounts (seller side):
+        &ctx.accounts.engine_authority,
+        &ctx.accounts.perp_vault_program,
+        &ctx.accounts.vault_config,
+        &ctx.accounts.engine_vault_operator,
+        &ctx.accounts.seller_balance,       // src_balance for seller's margin
+        &ctx.accounts.engine_pool_balance,  // dst pool
         -buyer_size_delta,
         price,
         auth_seeds,
@@ -307,6 +332,13 @@ fn invoke_engine_open_position<'info>(
     engine_operator_account: &UncheckedAccount<'info>,
     darkpool_authority: &UncheckedAccount<'info>,
     system_program: &AccountInfo<'info>,
+    // ---- engine vault remaining_accounts (v0.3.1 wiring) ----
+    engine_authority: &UncheckedAccount<'info>,
+    vault_program: &UncheckedAccount<'info>,
+    vault_config: &UncheckedAccount<'info>,
+    engine_vault_operator: &UncheckedAccount<'info>,
+    src_balance: &UncheckedAccount<'info>,        // mut
+    engine_pool_balance: &UncheckedAccount<'info>, // mut
     size_delta: i64,
     fill_price: u64,
     auth_seeds: &[&[u8]],
@@ -319,6 +351,7 @@ fn invoke_engine_open_position<'info>(
     let ix = Instruction {
         program_id: perp_engine_program.key(),
         accounts: vec![
+            // ---- Anchor-typed accounts ----
             AccountMeta::new_readonly(engine_config.key(), false),
             AccountMeta::new(engine_market.key(), false),
             AccountMeta::new(position.key(), false),
@@ -326,6 +359,13 @@ fn invoke_engine_open_position<'info>(
             AccountMeta::new_readonly(engine_operator_account.key(), false),
             AccountMeta::new(darkpool_authority.key(), true), // signer + mut (payer)
             AccountMeta::new_readonly(system_program.key(), false),
+            // ---- engine remaining_accounts (order from perp_engine open_position.rs file header) ----
+            AccountMeta::new_readonly(engine_authority.key(), false),
+            AccountMeta::new_readonly(vault_program.key(), false),
+            AccountMeta::new_readonly(vault_config.key(), false),
+            AccountMeta::new_readonly(engine_vault_operator.key(), false),
+            AccountMeta::new(src_balance.key(), false),
+            AccountMeta::new(engine_pool_balance.key(), false),
         ],
         data,
     };
@@ -340,6 +380,14 @@ fn invoke_engine_open_position<'info>(
             engine_operator_account.to_account_info(),
             darkpool_authority.to_account_info(),
             system_program.clone(),
+            // remaining
+            engine_authority.to_account_info(),
+            vault_program.to_account_info(),
+            vault_config.to_account_info(),
+            engine_vault_operator.to_account_info(),
+            src_balance.to_account_info(),
+            engine_pool_balance.to_account_info(),
+            // program last
             perp_engine_program.to_account_info(),
         ],
         &[auth_seeds],

@@ -18,6 +18,16 @@ pub struct Initialize<'info> {
     )]
     pub config: Account<'info, ADLConfig>,
 
+    /// CHECK: adl_authority PDA — signs CPIs into perp_engine.
+    /// Pre-funded by owner with rent for downstream init_if_needed paths.
+    /// Must be pre-registered as engine operator (one-time set_operator
+    /// call by engine owner).
+    #[account(
+        seeds = [ADLConfig::AUTHORITY_SEED],
+        bump,
+    )]
+    pub authority: UncheckedAccount<'info>,
+
     /// CHECK: perp_engine program id.
     pub perp_engine: UncheckedAccount<'info>,
     /// CHECK: perp_vault program id.
@@ -38,6 +48,7 @@ pub(crate) fn initialize(
 ) -> Result<()> {
     let cfg = &mut ctx.accounts.config;
     cfg.bump = ctx.bumps.config;
+    cfg.authority_bump = ctx.bumps.authority;
     cfg.owner = ctx.accounts.owner.key();
     cfg.pending_owner = Pubkey::default();
     cfg.paused = false;

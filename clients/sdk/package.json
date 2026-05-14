@@ -26,7 +26,8 @@
   "files": ["dist", "src", "README.md"],
   "scripts": {
     "build": "tsc",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "ts-mocha -p ./tsconfig.test.json -t 1000000 'src/**/*.test.ts'"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",

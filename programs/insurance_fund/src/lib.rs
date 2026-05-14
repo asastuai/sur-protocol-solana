@@ -4,10 +4,10 @@
 //! by the fund + governs keeper reward payouts with H-9 fix per-call and
 //! rolling 24h caps preserved.
 //!
-//! v0.2.2 ships state tracking + caps validation + admin governance.
-//! perp_vault.internal_transfer CPI for actual reward payout lands in v0.3
-//! using the same manual invoke_signed pattern proven in a2a_darkpool and
-//! liquidator.
+//! v0.3 wiring #2: pay_keeper_reward fires real CPI to perp_vault.
+//! internal_transfer signed by `insurance_fund_authority` PDA. Caps fire
+//! BEFORE the CPI; state updated AFTER. Bootstrap_insurance_pool ix
+//! (mirrors engine bootstrap) seeds the fund's vault balance one-time.
 //!
 //! Source: github.com/asastuai/sur-protocol/blob/master/contracts/src/InsuranceFund.sol
 
@@ -41,6 +41,13 @@ pub mod insurance_fund {
         amount: u64,
     ) -> Result<()> {
         instructions::record_bad_debt::handler(ctx, market_id, trader, amount)
+    }
+
+    pub fn bootstrap_insurance_pool(
+        ctx: Context<BootstrapInsurancePool>,
+        amount: u64,
+    ) -> Result<()> {
+        instructions::bootstrap_pool::handler(ctx, amount)
     }
 
     pub fn pay_keeper_reward(

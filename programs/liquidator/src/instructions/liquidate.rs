@@ -1,27 +1,40 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{
-    hash::hashv,
-    instruction::{AccountMeta, Instruction},
-    program::invoke_signed,
-};
 
 use crate::errors::LiquidatorError;
 use crate::events::LiquidationExecuted;
+use crate::instructions::cpi_util::invoke_engine_liquidate_position;
 use crate::state::*;
 
 // ============================================================
 //                    LIQUIDATE (permissionless)
 // ============================================================
-// Solidity: anyone can call. Engine.liquidatePosition(marketId, trader, keeper)
-// performs the actual close + keeper reward.
+// Solidity: Liquidator.sol:45-60. Anyone can call. Engine performs
+// the actual close + keeper reward distribution. We just signal:
+//   engine.liquidatePosition(marketId, trader, msg.sender)  [Sol:53]
 //
-// Solana: same permissionless model. Liquidator program signs CPI to
-// perp_engine.liquidate_position via `liquidator_authority` PDA (seed
-// `["liquidator_authority"]`). PDA pre-registered as engine operator +
-// pre-funded with SOL.
+// On Solana the keeper-reward + insurance routing happens INSIDE
+// engine.liquidate_position (v0.3 wiring #1). Liquidator no longer
+// computes the reward — it just forwards the vault accounts.
 //
-// CPI uses manual invoke_signed (same pattern as darkpool — sidesteps
-// anchor 0.31.1 cpi+idl-build bug).
+// CPI signed as `liquidator_authority` PDA (seed `["liquidator_authority"]`).
+// PDA is pre-registered as an engine operator (test setup) and pre-funded
+// with SOL.
+//
+// Manual invoke_signed pattern same as a2a_darkpool — sidesteps anchor
+// 0.31.1 cpi+idl-build bug.
+//
+// VAULT ACCOUNTS forwarded to engine via remaining_accounts (file order
+// locked by perp_engine::liquidate_position.rs file header):
+//   0. engine_authority        (read)  — engine's signing PDA
+//   1. perp_vault_program      (read)
+//   2. vault_config            (read)
+//   3. vault_operator          (read)  — vault Operator PDA for engine_authority
+//   4. keeper_balance          (mut)
+//   5. engine_pool_balance     (mut)   — engine_authority's vault account
+//   6. insurance_fund_balance  (mut)
+//
+// Empty/short remaining_accounts => engine skips internal vault CPI
+// (legacy v0.2 path; preserved for backward compat with smoke tests).
 
 #[derive(Accounts)]
 pub struct Liquidate<'info> {
@@ -73,7 +86,10 @@ pub struct Liquidate<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub(crate) fn handler(ctx: Context<Liquidate>, market_id: [u8; 32]) -> Result<()> {
+pub(crate) fn handler<'info>(
+    ctx: Context<'_, '_, '_, 'info, Liquidate<'info>>,
+    market_id: [u8; 32],
+) -> Result<()> {
     let cfg = &mut ctx.accounts.config;
     require!(!cfg.paused, LiquidatorError::PausedError);
 
@@ -85,9 +101,10 @@ pub(crate) fn handler(ctx: Context<Liquidate>, market_id: [u8; 32]) -> Result<()
     }
 
     // ---- CPI: engine.liquidate_position ----
-    // Engine validates is_liquidatable internally; we just trigger.
+    // Engine validates is_liquidatable internally. Vault accounts forwarded
+    // via remaining_accounts so engine's internal vault CPI fires.
     let auth_bump = ctx.bumps.liquidator_authority;
-    let auth_seeds: &[&[u8]] = &[b"liquidator_authority", &[auth_bump]];
+    let auth_seeds: &[&[u8]] = &[b"liquidator_authority", std::slice::from_ref(&auth_bump)];
 
     invoke_engine_liquidate_position(
         &ctx.accounts.perp_engine_program,
@@ -96,6 +113,7 @@ pub(crate) fn handler(ctx: Context<Liquidate>, market_id: [u8; 32]) -> Result<()
         &ctx.accounts.engine_position,
         &ctx.accounts.engine_operator_account,
         &ctx.accounts.liquidator_authority,
+        ctx.remaining_accounts,
         auth_seeds,
     )?;
 
@@ -118,56 +136,4 @@ pub(crate) fn handler(ctx: Context<Liquidate>, market_id: [u8; 32]) -> Result<()
     });
 
     Ok(())
-}
-
-fn anchor_discriminator(method_name: &str) -> [u8; 8] {
-    let mut full_name = String::with_capacity(7 + method_name.len());
-    full_name.push_str("global:");
-    full_name.push_str(method_name);
-    let h = hashv(&[full_name.as_bytes()]);
-    let bytes = h.to_bytes();
-    let mut out = [0u8; 8];
-    out.copy_from_slice(&bytes[..8]);
-    out
-}
-
-#[allow(clippy::too_many_arguments)]
-fn invoke_engine_liquidate_position<'info>(
-    perp_engine_program: &UncheckedAccount<'info>,
-    engine_config: &UncheckedAccount<'info>,
-    engine_market: &UncheckedAccount<'info>,
-    engine_position: &UncheckedAccount<'info>,
-    engine_operator_account: &UncheckedAccount<'info>,
-    liquidator_authority: &UncheckedAccount<'info>,
-    auth_seeds: &[&[u8]],
-) -> Result<()> {
-    // engine.liquidate_position takes no args
-    let mut data = Vec::with_capacity(8);
-    data.extend_from_slice(&anchor_discriminator("liquidate_position"));
-
-    let ix = Instruction {
-        program_id: perp_engine_program.key(),
-        accounts: vec![
-            AccountMeta::new_readonly(engine_config.key(), false),
-            AccountMeta::new(engine_market.key(), false),
-            AccountMeta::new(engine_position.key(), false),
-            AccountMeta::new_readonly(engine_operator_account.key(), false),
-            AccountMeta::new_readonly(liquidator_authority.key(), true), // signer
-        ],
-        data,
-    };
-
-    invoke_signed(
-        &ix,
-        &[
-            engine_config.to_account_info(),
-            engine_market.to_account_info(),
-            engine_position.to_account_info(),
-            engine_operator_account.to_account_info(),
-            liquidator_authority.to_account_info(),
-            perp_engine_program.to_account_info(),
-        ],
-        &[auth_seeds],
-    )
-    .map_err(Into::into)
 }

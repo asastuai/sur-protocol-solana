@@ -17,6 +17,15 @@ pub struct Initialize<'info> {
     )]
     pub config: Account<'info, InsuranceFundConfig>,
 
+    /// CHECK: insurance_fund_authority PDA — signs CPIs into perp_vault.
+    /// Must be pre-registered as operator on perp_vault (one-time set_operator
+    /// call from vault owner). Holds the insurance fund's vault AccountBalance.
+    #[account(
+        seeds = [InsuranceFundConfig::AUTHORITY_SEED],
+        bump,
+    )]
+    pub authority: UncheckedAccount<'info>,
+
     /// CHECK: vault program id, validated when CPI lands.
     pub vault: UncheckedAccount<'info>,
 
@@ -33,6 +42,7 @@ pub(crate) fn initialize(
 ) -> Result<()> {
     let cfg = &mut ctx.accounts.config;
     cfg.bump = ctx.bumps.config;
+    cfg.authority_bump = ctx.bumps.authority;
     cfg.owner = ctx.accounts.owner.key();
     cfg.pending_owner = Pubkey::default();
     cfg.paused = false;

@@ -15,6 +15,16 @@ pub struct Initialize<'info> {
     )]
     pub engine_config: Account<'info, EngineConfig>,
 
+    /// CHECK: engine_authority PDA. Signs CPIs into perp_vault.
+    /// Pre-funded by owner with rent for downstream init_if_needed. Must be
+    /// pre-registered as operator on perp_vault (one-time set_operator call).
+    /// Holds engine_pool AccountBalance (margin + counterparty pool) on vault.
+    #[account(
+        seeds = [EngineConfig::AUTHORITY_SEED],
+        bump,
+    )]
+    pub authority: UncheckedAccount<'info>,
+
     /// CHECK: perp_vault program id; not invoked at init, validated when CPI lands.
     pub perp_vault: UncheckedAccount<'info>,
 
@@ -30,6 +40,7 @@ pub struct Initialize<'info> {
 pub(crate) fn initialize(ctx: Context<Initialize>) -> Result<()> {
     let cfg = &mut ctx.accounts.engine_config;
     cfg.bump = ctx.bumps.engine_config;
+    cfg.authority_bump = ctx.bumps.authority;
     cfg.owner = ctx.accounts.owner.key();
     cfg.pending_owner = Pubkey::default();
     cfg.paused = false;

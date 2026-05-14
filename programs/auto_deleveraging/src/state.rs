@@ -3,6 +3,8 @@ use anchor_lang::prelude::*;
 #[account]
 pub struct ADLConfig {
     pub bump: u8,
+    /// Bump for the adl_authority PDA — signs CPIs into perp_engine.
+    pub authority_bump: u8,
     pub owner: Pubkey,
     pub pending_owner: Pubkey,
     pub paused: bool,
@@ -26,10 +28,12 @@ pub struct ADLConfig {
 
 impl ADLConfig {
     pub const SEED: &'static [u8] = b"adl_config";
+    pub const AUTHORITY_SEED: &'static [u8] = b"adl_authority";
 
-    // 8 (disc) + 1 + 32*4 (pubkeys) + 1 (paused) + 1 (adl_enabled)
-    // + 8*4 (u64) + 8*1 (i64) + 8 (cooldown_secs)
-    pub const SIZE: usize = 8 + 1 + 32 + 32 + 1 + 1 + 8 + 8 + 8 + 8 + 8 + 32 + 32 + 32;
+    // 8 (disc) + 1 (bump) + 1 (authority_bump) + 32*4 (pubkeys)
+    // + 1 (paused) + 1 (adl_enabled) + 8*4 (u64) + 8 (i64 last_adl_time)
+    // + 8 (i64 cooldown_secs)
+    pub const SIZE: usize = 8 + 1 + 1 + 32 + 32 + 1 + 1 + 8 + 8 + 8 + 8 + 8 + 32 + 32 + 32;
 }
 
 #[account]

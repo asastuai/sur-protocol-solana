@@ -8,6 +8,10 @@ pub const PRICE_PRECISION: u64 = 1_000_000;        // 1e6
 pub const SIZE_PRECISION: u64 = 100_000_000;        // 1e8
 pub const BPS: u64 = 10_000;
 
+// Liquidation reward constants (mirror PerpEngine.sol _distributeLiquidationRewards)
+pub const KEEPER_REWARD_BAD_DEBT_BPS: u64 = 5;     // 0.05% of notional, paid from insurance
+pub const KEEPER_REWARD_CAP_BPS: u64 = 500;        // 5% cap on solvent path
+
 // ============================================================
 //                    ENGINE CONFIG (singleton PDA)
 // ============================================================
@@ -15,6 +19,8 @@ pub const BPS: u64 = 10_000;
 #[account]
 pub struct EngineConfig {
     pub bump: u8,
+    /// Bump for the engine_authority PDA — used to sign CPIs into perp_vault.
+    pub authority_bump: u8,
     pub owner: Pubkey,
     pub pending_owner: Pubkey,
     pub paused: bool,
@@ -28,9 +34,10 @@ pub struct EngineConfig {
 
 impl EngineConfig {
     pub const SEED: &'static [u8] = b"engine_config";
+    pub const AUTHORITY_SEED: &'static [u8] = b"engine_authority";
 
-    // 8 (disc) + 1 + 32 + 32 + 1 + 32 + 32
-    pub const SIZE: usize = 8 + 1 + 32 + 32 + 1 + 32 + 32;
+    // 8 (disc) + 1 + 1 + 32 + 32 + 1 + 32 + 32
+    pub const SIZE: usize = 8 + 1 + 1 + 32 + 32 + 1 + 32 + 32;
 }
 
 // ============================================================

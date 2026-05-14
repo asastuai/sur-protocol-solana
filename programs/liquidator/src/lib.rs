@@ -2,11 +2,12 @@
 //!
 //! Anyone can call `liquidate(market_id)` to close an undercollateralized
 //! position. The engine validates `is_liquidatable` internally and performs
-//! the close. Liquidator program tracks per-keeper stats for leaderboards
-//! + future reward routing.
+//! the close. Liquidator program tracks per-keeper stats for leaderboards.
 //!
-//! v0.2.1: keeper reward distribution NOT YET wired (lands with engine→vault
-//! CPI in v0.3). Keeper just gets `keeper_stats.liquidations` incremented.
+//! v0.3 wiring #2: liquidator forwards vault remaining_accounts to engine
+//! so engine's internal vault CPI fires. Keeper reward + insurance routing
+//! happens INSIDE engine.liquidate_position (mirrors PerpEngine.sol
+//! _distributeLiquidationRewards Sol:1543-1568).
 //!
 //! Source: github.com/asastuai/sur-protocol/blob/master/contracts/src/Liquidator.sol
 
@@ -29,7 +30,10 @@ pub mod liquidator {
         instructions::admin::initialize(ctx)
     }
 
-    pub fn liquidate(ctx: Context<Liquidate>, market_id: [u8; 32]) -> Result<()> {
+    pub fn liquidate<'info>(
+        ctx: Context<'_, '_, '_, 'info, Liquidate<'info>>,
+        market_id: [u8; 32],
+    ) -> Result<()> {
         instructions::liquidate::handler(ctx, market_id)
     }
 

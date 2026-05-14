@@ -1,4 +1,5 @@
 pub mod admin;
+pub mod cpi_util;
 pub mod execute_adl;
 pub mod operator_admin;
 

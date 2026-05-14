@@ -1,0 +1,21 @@
+[package]
+name = "order_settlement"
+version = "0.1.0"
+description = "SUR Protocol — OrderSettlement. Bridges off-chain matching engine to on-chain execution: verifies trader signatures, collects fees, opens positions via CPI. Solana port of OrderSettlement.sol."
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "order_settlement"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+idl-build = ["anchor-lang/idl-build"]
+anchor-debug = []
+
+[dependencies]
+anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }

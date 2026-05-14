@@ -2,21 +2,35 @@ use anchor_lang::prelude::*;
 
 use crate::errors::EngineError;
 use crate::events::{PositionModified, PositionOpened};
+use crate::instructions::cpi_util::invoke_vault_internal_transfer_raw;
 use crate::state::*;
 
 // ============================================================
 //                    OPEN POSITION (operator-only)
 // ============================================================
-// v0.2 minimal: operator (darkpool, intent_engine, etc.) opens a position
+// Solidity: PerpEngine.sol _openNewPosition / _increasePosition.
+// Operator (darkpool, intent_engine, order_settlement) opens a position
 // for a trader. Validates margin, max_position_size, market active.
 //
-// PnL settlement when modifying an existing position uses current market
-// mark_price (same as Solidity for v0.2 — funding accrual + impact-weighted
-// entry land in v0.3).
+// PnL realization on reduce/flip uses fill_price (same as Solidity for v0.2).
 //
-// Margin movement (debit trader's vault deposit balance, credit engine
-// margin pool) is documented as a CPI stub — wire when we add the
-// margin-account abstraction in v0.2.X.
+// v0.3 wiring #1: margin lock via perp_vault.internal_transfer.
+// Mirrors Solidity isolated mode (PerpEngine.sol:809):
+//   vault.internalTransfer(trader, address(this), requiredMargin)
+// Trader vault deposit balance debited; engine_authority pool credited.
+//
+// VAULT ACCOUNTS PASSED VIA REMAINING_ACCOUNTS (in this exact order):
+//   0. authority           (engine_authority PDA UncheckedAccount)
+//   1. perp_vault_program  (UncheckedAccount)
+//   2. vault_config        (UncheckedAccount)
+//   3. vault_operator      (UncheckedAccount, derived from authority)
+//   4. trader_balance      (mut UncheckedAccount, seeded by trader)
+//   5. engine_pool_balance (mut UncheckedAccount, seeded by authority)
+//
+// If remaining_accounts is empty, the CPI is skipped (legacy v0.2 behavior).
+// This preserves backward compat for existing CPI callers (darkpool,
+// order_settlement, trading_vault) that have NOT yet been migrated. Those
+// callers will be updated in subsequent v0.3 wiring patches.
 
 #[derive(Accounts)]
 pub struct OpenPosition<'info> {
@@ -24,7 +38,7 @@ pub struct OpenPosition<'info> {
         seeds = [EngineConfig::SEED],
         bump = engine_config.bump,
     )]
-    pub engine_config: Account<'info, EngineConfig>,
+    pub engine_config: Box<Account<'info, EngineConfig>>,
 
     #[account(
         mut,
@@ -32,7 +46,7 @@ pub struct OpenPosition<'info> {
         bump = market.bump,
         constraint = market.active @ EngineError::MarketNotActive,
     )]
-    pub market: Account<'info, Market>,
+    pub market: Box<Account<'info, Market>>,
 
     #[account(
         init_if_needed,
@@ -41,9 +55,9 @@ pub struct OpenPosition<'info> {
         seeds = [Position::SEED_PREFIX, &market.market_id, trader.key().as_ref()],
         bump,
     )]
-    pub position: Account<'info, Position>,
+    pub position: Box<Account<'info, Position>>,
 
-    /// CHECK: trader is identity only — not signer; operator is the authority for opens.
+    /// CHECK: trader is identity only - not signer; operator is the authority for opens.
     pub trader: UncheckedAccount<'info>,
 
     #[account(
@@ -52,7 +66,7 @@ pub struct OpenPosition<'info> {
         constraint = operator_account.operator == operator.key(),
         constraint = operator_account.authorized @ EngineError::NotOperator,
     )]
-    pub operator_account: Account<'info, Operator>,
+    pub operator_account: Box<Account<'info, Operator>>,
 
     #[account(mut)]
     pub operator: Signer<'info>,
@@ -73,7 +87,6 @@ pub(crate) fn handler(
     let market = &mut ctx.accounts.market;
     let position = &mut ctx.accounts.position;
 
-    // Initialize position PDA fields on first touch.
     if position.trader == Pubkey::default() {
         position.trader = ctx.accounts.trader.key();
         position.market_id = market.market_id;
@@ -81,35 +94,29 @@ pub(crate) fn handler(
     }
 
     let old_size = position.size;
+    let old_margin = position.margin;
     let new_size = old_size
         .checked_add(size_delta)
         .ok_or(EngineError::MathOverflow)?;
 
-    // Max position size check (absolute).
     let abs_new = new_size.unsigned_abs();
     require!(
         abs_new <= market.max_position_size,
         EngineError::MaxPositionExceeded
     );
 
-    // Compute realized PnL when reducing/flipping.
     let realized_pnl: i64 = if old_size != 0 && (old_size.signum() != new_size.signum() || abs_new < old_size.unsigned_abs()) {
-        // Reducing or flipping: realize PnL on the closed portion.
         let closed_size = if old_size.signum() != new_size.signum() {
-            old_size // entire old position closed when flipping
+            old_size
         } else {
-            // Same side, smaller magnitude: closed = old - new (signed)
             old_size - new_size
         };
         let closed_abs = closed_size.unsigned_abs();
         let pnl_per_unit = if closed_size > 0 {
-            // Long closing: pnl = (fill - entry) * size
             (fill_price as i128) - (position.entry_price as i128)
         } else {
-            // Short closing: pnl = (entry - fill) * size
             (position.entry_price as i128) - (fill_price as i128)
         };
-        // pnl in USDC = pnl_per_unit * closed_abs / SIZE_PRECISION
         let pnl = pnl_per_unit
             .checked_mul(closed_abs as i128)
             .ok_or(EngineError::MathOverflow)?
@@ -119,21 +126,18 @@ pub(crate) fn handler(
         0
     };
 
-    // Compute new entry price (weighted avg when increasing same-side, fresh when opening/flipping).
     let new_entry_price = if old_size == 0 || old_size.signum() != new_size.signum() {
         fill_price
     } else if abs_new > old_size.unsigned_abs() {
-        // Increasing same-side: weighted average
         let added = (abs_new - old_size.unsigned_abs()) as u128;
         let kept = old_size.unsigned_abs() as u128;
         let avg = (kept * position.entry_price as u128 + added * fill_price as u128)
             / (abs_new as u128);
         u64::try_from(avg).map_err(|_| EngineError::MathOverflow)?
     } else {
-        position.entry_price // reducing same-side, entry unchanged
+        position.entry_price
     };
 
-    // Update OI (open interest).
     let old_long = if old_size > 0 { old_size as u64 } else { 0 };
     let old_short = if old_size < 0 { (-old_size) as u64 } else { 0 };
     let new_long = if new_size > 0 { new_size as u64 } else { 0 };
@@ -148,7 +152,6 @@ pub(crate) fn handler(
         .saturating_sub(old_short)
         .saturating_add(new_short);
 
-    // Compute required initial margin for the new position size.
     let notional_u128 = (abs_new as u128)
         .checked_mul(new_entry_price as u128)
         .ok_or(EngineError::MathOverflow)?
@@ -160,10 +163,40 @@ pub(crate) fn handler(
     let required_margin: u64 = u64::try_from(required_margin_u128)
         .map_err(|_| EngineError::MathOverflow)?;
 
-    // ---- CPI STUB: margin movement via perp_vault.internal_transfer ----
-    // In Solidity, engine acts as operator on PerpVault and locks margin
-    // from the trader's deposit balance into a margin pool.
-    // Wire in v0.2.X. For now, position.margin field reflects "would-be locked".
+    // ---- v0.3 wiring #1: margin lock via perp_vault.internal_transfer ----
+    // Solidity:809 - vault.internalTransfer(trader, address(this), requiredMargin)
+    // Vault accounts come via remaining_accounts (file header for order).
+    // Empty remaining_accounts => skip CPI (legacy v0.2 behavior, used by
+    // existing CPI callers until they are migrated).
+    let additional_margin = required_margin.saturating_sub(old_margin);
+
+    if additional_margin > 0 && ctx.remaining_accounts.len() >= 6 {
+        let auth_bump = cfg.authority_bump;
+        let auth_seeds: &[&[u8]] = &[EngineConfig::AUTHORITY_SEED, std::slice::from_ref(&auth_bump)];
+
+        let authority = &ctx.remaining_accounts[0];
+        let vault_program = &ctx.remaining_accounts[1];
+        let vault_config = &ctx.remaining_accounts[2];
+        let vault_operator = &ctx.remaining_accounts[3];
+        let trader_balance = &ctx.remaining_accounts[4];
+        let engine_pool_balance = &ctx.remaining_accounts[5];
+
+        require!(
+            vault_program.key() == cfg.perp_vault,
+            EngineError::InvalidParam
+        );
+
+        invoke_vault_internal_transfer_raw(
+            vault_program,
+            vault_config,
+            vault_operator,
+            trader_balance,
+            engine_pool_balance,
+            authority,
+            additional_margin,
+            auth_seeds,
+        )?;
+    }
 
     let clock = Clock::get()?;
     if old_size == 0 {

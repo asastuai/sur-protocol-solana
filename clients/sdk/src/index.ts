@@ -15,3 +15,5 @@
 
 export { SUR_PROGRAM_IDS } from "./program-ids";
 export { SurPdas } from "./pdas";
+export { PerpEngineView } from "./views/perp_engine_view";
+export type { AccountDetails } from "./views/perp_engine_view";

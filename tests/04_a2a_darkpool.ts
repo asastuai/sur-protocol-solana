@@ -90,6 +90,10 @@ describe("a2a_darkpool", () => {
     [Buffer.from("engine_config")],
     engine.programId,
   );
+  const [engineAuthorityPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("engine_authority")],
+    engine.programId,
+  );
   const [engineMarketPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("market"), marketIdBtc],
     engine.programId,
@@ -151,7 +155,9 @@ describe("a2a_darkpool", () => {
       .rpc();
 
     // Provision USDC ATAs + mint USDC + deposit into vault for the 3 parties.
-    const seed = 1_000 * 1_000_000; // $1,000 each (6 decimals)
+    // Each party needs enough USDC to cover margin lock ($2.5K @ 5% on $50K notional)
+    // + fee ($15) per side after v0.3.1 wiring.
+    const seed = 10_000 * 1_000_000; // $10,000 each (6 decimals)
     for (const kp of [intentCreator, responder, feeRecipient]) {
       const ata = await createAccount(
         provider.connection,
@@ -272,6 +278,10 @@ describe("a2a_darkpool", () => {
       balancePda(feeRecipient.publicKey),
     )).balance.toNumber();
 
+    const buyerPoolBefore = (await vault.account.accountBalance.fetch(
+      balancePda(engineAuthorityPda),
+    )).balance.toNumber();
+
     await program.methods
       .acceptAndSettle()
       .accounts({
@@ -291,6 +301,10 @@ describe("a2a_darkpool", () => {
         buyerTrader: intentCreator.publicKey,
         sellerTrader: responder.publicKey,
         engineOperatorAccount: engineOperatorPda(darkpoolAuthorityPda),
+        // engine_authority + its vault wiring (v0.3.1)
+        engineAuthority: engineAuthorityPda,
+        engineVaultOperator: vaultOperatorPda(engineAuthorityPda),
+        enginePoolBalance: balancePda(engineAuthorityPda),
         // vault
         perpVaultProgram: vault.programId,
         vaultConfig: vaultConfigPda,
@@ -320,7 +334,9 @@ describe("a2a_darkpool", () => {
       "seller should hold -1 BTC short");
 
     // Fee moved in vault: notional 1 BTC * $50K = $50K -> fee = 50K * 3 / 10000 = $15
-    const expectedFee = 15_000_000; // $15 in 6-decimal USDC
+    // Margin lock (v0.3.1): notional $50K * 5% (initial_margin_bps=500) = $2500 per side.
+    const expectedFee = 15_000_000;       // $15 in 6-decimal USDC
+    const expectedMargin = 2_500_000_000; // $2500
     const buyerBalanceAfter = (await vault.account.accountBalance.fetch(
       balancePda(intentCreator.publicKey),
     )).balance.toNumber();
@@ -330,13 +346,18 @@ describe("a2a_darkpool", () => {
     const feeRecipientAfter = (await vault.account.accountBalance.fetch(
       balancePda(feeRecipient.publicKey),
     )).balance.toNumber();
+    const buyerPoolAfter = (await vault.account.accountBalance.fetch(
+      balancePda(engineAuthorityPda),
+    )).balance.toNumber();
 
-    assert.equal(buyerBalanceAfter, buyerBalanceBefore - expectedFee,
-      "buyer balance debited by fee");
-    assert.equal(sellerBalanceAfter, sellerBalanceBefore - expectedFee,
-      "seller balance debited by fee");
+    assert.equal(buyerBalanceAfter, buyerBalanceBefore - expectedFee - expectedMargin,
+      "buyer balance debited by fee + margin");
+    assert.equal(sellerBalanceAfter, sellerBalanceBefore - expectedFee - expectedMargin,
+      "seller balance debited by fee + margin");
     assert.equal(feeRecipientAfter, feeRecipientBefore + 2 * expectedFee,
       "fee recipient credited 2x fee");
+    assert.equal(buyerPoolAfter - buyerPoolBefore, 2 * expectedMargin,
+      "engine pool credited margin from both sides");
 
     // Reputation incremented for both
     const creatorRep = await program.account.agentReputation.fetch(

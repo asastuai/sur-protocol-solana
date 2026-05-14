@@ -1,45 +1,44 @@
-[features]
-seeds = false
-skip-lint = false
+[toolchain]
 
-[programs.localnet]
-a2a_darkpool = "BVrt7REAZoCZBEY987fUPEjn2EvnXyaFzpMPVXb81rnq"
-perp_vault = "FpbuRBF3RiAkpD3k8XccnoYH99W5g9R59aRd3jRZTBfU"
-oracle_router = "CC5Xc5DTyLSfcw3MiXbyJQyRA21mh3Shup6bgMH8WGSS"
-perp_engine = "Cwpbe4mwgFdnhwhoRBGBzUerQa52cJMqXWjG3wGvYFW8"
-sur_timelock = "9FeQoWChgaRqvKJGqjTmVvpF7jQ4Ph7zgSsrkA4NnwAF"
-liquidator = "9APXqgHS7aNtYsjDE1SJ6PiboJPSyv2QhG9SmLaCzg2R"
-insurance_fund = "A9TY4wcr6Buzrac5XLC5aQvz4wWyYjQSogsVBvS3eKPp"
-auto_deleveraging = "F12KjhGRyiEbM629MHookPFar7xsbfbfafoZjuBmCTDz"
+[features]
+resolution = true
+skip-lint = false
 
 [programs.devnet]
 a2a_darkpool = "BVrt7REAZoCZBEY987fUPEjn2EvnXyaFzpMPVXb81rnq"
-perp_vault = "FpbuRBF3RiAkpD3k8XccnoYH99W5g9R59aRd3jRZTBfU"
-oracle_router = "CC5Xc5DTyLSfcw3MiXbyJQyRA21mh3Shup6bgMH8WGSS"
-perp_engine = "Cwpbe4mwgFdnhwhoRBGBzUerQa52cJMqXWjG3wGvYFW8"
-sur_timelock = "9FeQoWChgaRqvKJGqjTmVvpF7jQ4Ph7zgSsrkA4NnwAF"
-liquidator = "9APXqgHS7aNtYsjDE1SJ6PiboJPSyv2QhG9SmLaCzg2R"
-insurance_fund = "A9TY4wcr6Buzrac5XLC5aQvz4wWyYjQSogsVBvS3eKPp"
 auto_deleveraging = "F12KjhGRyiEbM629MHookPFar7xsbfbfafoZjuBmCTDz"
+collateral_manager = "2LavJpzUzHWs2cJTAp2BEvvS2Kxrr9gfaWgSVH4s3juh"
+insurance_fund = "A9TY4wcr6Buzrac5XLC5aQvz4wWyYjQSogsVBvS3eKPp"
+liquidator = "9APXqgHS7aNtYsjDE1SJ6PiboJPSyv2QhG9SmLaCzg2R"
+oracle_router = "CC5Xc5DTyLSfcw3MiXbyJQyRA21mh3Shup6bgMH8WGSS"
+order_settlement = "2q4HtPAjUMFPDfipazQhb52sRun3x9TdpwRHysWBg6Vf"
+perp_engine = "Cwpbe4mwgFdnhwhoRBGBzUerQa52cJMqXWjG3wGvYFW8"
+perp_vault = "FpbuRBF3RiAkpD3k8XccnoYH99W5g9R59aRd3jRZTBfU"
+sur_timelock = "9FeQoWChgaRqvKJGqjTmVvpF7jQ4Ph7zgSsrkA4NnwAF"
+trading_vault = "JE4JwZ3b7eYoBsTempCUbkBiFAgYrTsisn2uMssWGvCy"
+
+[programs.localnet]
+a2a_darkpool = "BVrt7REAZoCZBEY987fUPEjn2EvnXyaFzpMPVXb81rnq"
+auto_deleveraging = "F12KjhGRyiEbM629MHookPFar7xsbfbfafoZjuBmCTDz"
+collateral_manager = "2LavJpzUzHWs2cJTAp2BEvvS2Kxrr9gfaWgSVH4s3juh"
+insurance_fund = "A9TY4wcr6Buzrac5XLC5aQvz4wWyYjQSogsVBvS3eKPp"
+liquidator = "9APXqgHS7aNtYsjDE1SJ6PiboJPSyv2QhG9SmLaCzg2R"
+oracle_router = "CC5Xc5DTyLSfcw3MiXbyJQyRA21mh3Shup6bgMH8WGSS"
+order_settlement = "2q4HtPAjUMFPDfipazQhb52sRun3x9TdpwRHysWBg6Vf"
+perp_engine = "Cwpbe4mwgFdnhwhoRBGBzUerQa52cJMqXWjG3wGvYFW8"
+perp_vault = "FpbuRBF3RiAkpD3k8XccnoYH99W5g9R59aRd3jRZTBfU"
+sur_timelock = "9FeQoWChgaRqvKJGqjTmVvpF7jQ4Ph7zgSsrkA4NnwAF"
+trading_vault = "JE4JwZ3b7eYoBsTempCUbkBiFAgYrTsisn2uMssWGvCy"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "localnet"
 wallet = "~/.config/solana/id.json"
+
+[workspace]
+members = ["programs/a2a_darkpool", "programs/perp_vault", "programs/oracle_router", "programs/perp_engine", "programs/sur_timelock", "programs/liquidator", "programs/insurance_fund", "programs/auto_deleveraging", "programs/collateral_manager", "programs/trading_vault", "programs/order_settlement"]
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 'tests/**/*.ts'"
-
-[workspace]
-members = [
-  "programs/a2a_darkpool",
-  "programs/perp_vault",
-  "programs/oracle_router",
-  "programs/perp_engine",
-  "programs/sur_timelock",
-  "programs/liquidator",
-  "programs/insurance_fund",
-  "programs/auto_deleveraging",
-]

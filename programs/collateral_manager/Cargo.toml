@@ -1,0 +1,22 @@
+[package]
+name = "collateral_manager"
+version = "0.1.0"
+description = "SUR Protocol — CollateralManager. Yield-bearing token margin: SPL custody, haircut-adjusted USDC credit via perp_vault CPI, prospective haircut snapshots. Solana port of CollateralManager.sol."
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "collateral_manager"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+anchor-debug = []
+
+[dependencies]
+anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
+anchor-spl = { version = "0.31.1", features = ["idl-build"] }
