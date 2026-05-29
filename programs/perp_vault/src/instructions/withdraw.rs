@@ -77,8 +77,18 @@ pub(crate) fn handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     }
 
     // ---- CEI: state update BEFORE external (token) call ----
-    bal.balance = bal.balance.saturating_sub(amount);
-    cfg.total_deposits = cfg.total_deposits.saturating_sub(amount);
+    // N-5 hardening: `amount <= bal.balance` is required above, so use checked
+    // math on both the per-account balance and the aggregate counter — an
+    // underflow here is a conservation-invariant violation and must error, not
+    // silently clamp to 0 (which would hide insolvency from off-chain monitors).
+    bal.balance = bal
+        .balance
+        .checked_sub(amount)
+        .ok_or(VaultError::MathOverflow)?;
+    cfg.total_deposits = cfg
+        .total_deposits
+        .checked_sub(amount)
+        .ok_or(VaultError::MathOverflow)?;
 
     // SPL transfer signed by vault_authority PDA.
     let auth_bump = cfg.vault_authority_bump;
