@@ -85,8 +85,17 @@ pub(crate) fn debit_collateral(ctx: Context<CollateralOp>, amount: u64) -> Resul
     let bal = &mut ctx.accounts.trader_balance;
     require!(amount <= bal.collateral_balance, VaultError::InsufficientBalance);
 
-    bal.collateral_balance = bal.collateral_balance.saturating_sub(amount);
-    cfg.total_collateral_credits = cfg.total_collateral_credits.saturating_sub(amount);
+    // N-5 hardening: `amount <= collateral_balance` is required above; use checked
+    // math so an aggregate-counter underflow surfaces as an error instead of
+    // silently clamping to 0 (which would mask a conservation-invariant break).
+    bal.collateral_balance = bal
+        .collateral_balance
+        .checked_sub(amount)
+        .ok_or(VaultError::MathOverflow)?;
+    cfg.total_collateral_credits = cfg
+        .total_collateral_credits
+        .checked_sub(amount)
+        .ok_or(VaultError::MathOverflow)?;
 
     emit!(CollateralDebited {
         trader: ctx.accounts.trader.key(),

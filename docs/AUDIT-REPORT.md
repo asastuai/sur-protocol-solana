@@ -113,8 +113,9 @@ verified — `anchor test` 95/95 green (incl. an adversarial regression test pro
 fee-substitution attack reverts with `InvalidAccount`). Closed: C-1, H-2, N-1, N-2, N-4 (Gate 0a);
 C-1 fee leg + N-11 (Gate 0b); N-3 (Gate 0c); H-1 margin-skip; N-8/N-9 pause hygiene; LOW i64
 overflow gates (ADL/insurance) + Market::SIZE. REMAINING (architectural — need Juan's steer):
-N-5 conservation-of-funds, C-3/H-9 real governance, C-2 Pyth, H-7 liquidate_collateral, H-5/N-13
-ADL on-chain reads, N-6 trading_vault global pause, N-10/N-14 oracle bounds, remaining LOW/DiD.**
+N-5(b) winner-close insurance backstop (bounded), C-3/H-9 real governance, C-2 Pyth,
+H-7 liquidate_collateral, H-5/N-13 ADL on-chain reads, N-6 trading_vault global pause,
+N-10/N-14 oracle bounds, remaining LOW/DiD. (N-5(a) verified FALSE ALARM; N-5(d) done.)**
 
 **Gate 0 — Stop-the-line (the theft family; do before ANY value-bearing deploy):**
 1. ✅ **0a — fix the engine binding root. DONE.** Added `engine_pool` + `insurance_fund_balance` to
@@ -138,9 +139,17 @@ ADL on-chain reads, N-6 trading_vault global pause, N-10/N-14 oracle bounds, rem
    `trader_balance` to an explicit `seeds=[b"balance", trader.key()]` Account (not free `init_if_needed`).
 
 **Systemic:**
-5. Conservation-of-funds backstop: keep `collateral_balance` non-withdrawable-as-USDC; forbid
-   `internal_transfer` spending it for fee/PnL; add insurance draw on winner close; assert
-   `total_deposits <= usdc_vault.amount` after token moves; aggregate counters → `checked_sub`.
+5. ~~Conservation-of-funds~~ **N-5 RE-ASSESSED on code read (2026-05-29):**
+   - **(a) "internal_transfer spends collateral as USDC" = FALSE ALARM.** The C-5 split logic
+     credits the overflowed collateral portion to the destination's `collateral_balance` (NOT the
+     withdrawable `balance`), and `withdraw` only ever spends `balance`. Invariants
+     `sum(balance) == usdc_vault.amount == total_deposits` and `sum(collateral_balance) ==
+     total_collateral_credits` hold under every instruction. "Fixing" it would BREAK correct code.
+   - **(d) DONE:** aggregate counters (`total_deposits`, `total_collateral_credits`) switched from
+     `saturating_sub` to `checked_sub` so any invariant violation errors instead of clamping.
+   - **(b) REMAINING (bounded):** winner-close has no insurance backstop when `engine_pool` is
+     momentarily short → winner-payout DoS (not theft). Gated today by v0.2 market sizing. Needs the
+     insurance-draw wiring (read engine_pool + insurance balances in-handler) — grouped with governance/Pyth.
 6. Real governance: make each program's owner the `sur_timelock` PDA; `execute_transaction`
    `invoke_signed` the queued ix with `instruction_hash` verification; bind `tx_hash =
    keccak(target||payload||eta)`; two-step `transfer_ownership` (fixes C-3/H-9).
