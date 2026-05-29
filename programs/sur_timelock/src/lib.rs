@@ -38,6 +38,10 @@ pub mod sur_timelock {
         instructions::admin::transfer_ownership(ctx, new_owner)
     }
 
+    pub fn accept_ownership(ctx: Context<AcceptOwnership>) -> Result<()> {
+        instructions::admin::accept_ownership(ctx)
+    }
+
     pub fn set_guardian(ctx: Context<AdminUpdate>, new_guardian: Pubkey) -> Result<()> {
         instructions::admin::set_guardian(ctx, new_guardian)
     }
@@ -59,12 +63,22 @@ pub mod sur_timelock {
         tx_hash: [u8; 32],
         target: Pubkey,
         instruction_hash: [u8; 32],
+        accounts_hash: [u8; 32],
     ) -> Result<()> {
-        instructions::queue_exec::queue_transaction(ctx, tx_hash, target, instruction_hash)
+        instructions::queue_exec::queue_transaction(
+            ctx,
+            tx_hash,
+            target,
+            instruction_hash,
+            accounts_hash,
+        )
     }
 
-    pub fn execute_transaction(ctx: Context<ExecuteTransaction>) -> Result<()> {
-        instructions::queue_exec::execute_transaction(ctx)
+    pub fn execute_transaction(
+        ctx: Context<ExecuteTransaction>,
+        instruction_data: Vec<u8>,
+    ) -> Result<()> {
+        instructions::queue_exec::execute_transaction(ctx, instruction_data)
     }
 
     pub fn cancel_transaction(ctx: Context<CancelTransaction>) -> Result<()> {
