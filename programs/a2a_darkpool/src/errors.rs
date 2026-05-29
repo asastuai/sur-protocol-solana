@@ -76,4 +76,7 @@ pub enum DarkPoolError {
 
     #[msg("Invalid freshness budget (must be > 0)")]
     InvalidFreshnessBudget,
+
+    #[msg("Account does not match the canonical PDA for the resolved party/market")]
+    InvalidAccount,
 }

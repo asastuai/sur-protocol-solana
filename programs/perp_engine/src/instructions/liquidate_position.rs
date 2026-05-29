@@ -178,6 +178,15 @@ pub(crate) fn handler(ctx: Context<LiquidatePosition>) -> Result<()> {
                 vault_program.key() == cfg.perp_vault,
                 EngineError::InvalidParam
             );
+            // Gate 0a binding (N-4 fix): keeper reward is sourced FROM insurance on the
+            // bad-debt path, so insurance must be the canonical fund, not attacker-chosen.
+            if cfg.insurance_fund_balance != Pubkey::default() {
+                require!(
+                    insurance_fund_balance.key() == cfg.insurance_fund_balance,
+                    EngineError::InvalidParam
+                );
+            }
+            crate::instructions::cpi_util::assert_engine_authority(authority, cfg.authority_bump)?;
             keeper_pubkey = keeper_balance.key();
 
             invoke_vault_internal_transfer_raw(
@@ -225,6 +234,16 @@ pub(crate) fn handler(ctx: Context<LiquidatePosition>) -> Result<()> {
                 vault_program.key() == cfg.perp_vault,
                 EngineError::InvalidParam
             );
+            // Gate 0a binding (N-4 fix): engine pool source + insurance payout dest canonical.
+            require!(cfg.engine_pool != Pubkey::default(), EngineError::InvalidParam);
+            require!(engine_pool_balance.key() == cfg.engine_pool, EngineError::InvalidParam);
+            if cfg.insurance_fund_balance != Pubkey::default() {
+                require!(
+                    insurance_fund_balance.key() == cfg.insurance_fund_balance,
+                    EngineError::InvalidParam
+                );
+            }
+            crate::instructions::cpi_util::assert_engine_authority(authority, cfg.authority_bump)?;
             keeper_pubkey = keeper_balance.key();
 
             if keeper_reward > 0 {

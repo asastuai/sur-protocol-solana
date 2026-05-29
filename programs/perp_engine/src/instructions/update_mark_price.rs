@@ -44,6 +44,9 @@ pub(crate) fn handler(
     new_mark_price: u64,
     new_index_price: u64,
 ) -> Result<()> {
+    // N-8 fix: do not allow price overwrites while the engine is paused —
+    // otherwise freeze-then-investigate is defeated (last price goes live on unpause).
+    require!(!ctx.accounts.engine_config.paused, EngineError::PausedError);
     require!(new_mark_price > 0, EngineError::InvalidPrice);
 
     let m = &mut ctx.accounts.market;

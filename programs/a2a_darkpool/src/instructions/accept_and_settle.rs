@@ -224,6 +224,37 @@ pub(crate) fn handler(ctx: Context<AcceptAndSettle>) -> Result<()> {
         DarkPoolError::SelfTrade
     );
 
+    // ---- Gate 0b binding (audit C-1 fee-leg + N-11 fix) ----
+    // Bind the value-bearing vault balances to the RESOLVED buyer/seller/fee_recipient
+    // and engine_market to intent.market_id. Without this a permissionless intent_creator
+    // substitutes a victim's balance (fee drain) or a wrong market, and the CPI — signed
+    // by darkpool_authority (a registered operator) — would be honored downstream.
+    {
+        let pv = config.perp_vault;
+        let (exp_buyer, _) = Pubkey::find_program_address(&[b"balance", buyer.as_ref()], &pv);
+        require!(
+            ctx.accounts.buyer_balance.key() == exp_buyer,
+            DarkPoolError::InvalidAccount
+        );
+        let (exp_seller, _) = Pubkey::find_program_address(&[b"balance", seller.as_ref()], &pv);
+        require!(
+            ctx.accounts.seller_balance.key() == exp_seller,
+            DarkPoolError::InvalidAccount
+        );
+        let (exp_fee, _) =
+            Pubkey::find_program_address(&[b"balance", config.fee_recipient.as_ref()], &pv);
+        require!(
+            ctx.accounts.fee_recipient_balance.key() == exp_fee,
+            DarkPoolError::InvalidAccount
+        );
+        let (exp_market, _) =
+            Pubkey::find_program_address(&[b"market", market_id.as_ref()], &config.perp_engine);
+        require!(
+            ctx.accounts.engine_market.key() == exp_market,
+            DarkPoolError::InvalidAccount
+        );
+    }
+
     // ---- CEI: status flips BEFORE external calls ----
     intent.status = IntentStatus::Filled;
     intent.filled_response_id = response_id;

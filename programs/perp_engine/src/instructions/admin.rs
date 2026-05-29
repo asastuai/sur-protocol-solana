@@ -46,6 +46,8 @@ pub(crate) fn initialize(ctx: Context<Initialize>) -> Result<()> {
     cfg.paused = false;
     cfg.perp_vault = ctx.accounts.perp_vault.key();
     cfg.oracle_router = ctx.accounts.oracle_router.key();
+    cfg.engine_pool = Pubkey::default();
+    cfg.insurance_fund_balance = Pubkey::default();
 
     emit!(OwnershipTransferred {
         previous_owner: Pubkey::default(),
@@ -80,6 +82,17 @@ pub(crate) fn unpause(ctx: Context<AdminUpdate>) -> Result<()> {
     require!(cfg.paused, EngineError::NotPaused);
     cfg.paused = false;
     emit!(PauseStatusChanged { is_paused: false });
+    Ok(())
+}
+
+/// Owner sets the canonical insurance-fund AccountBalance PDA on perp_vault.
+/// Liquidation insurance flows are bound to this key (audit N-4 fix).
+pub(crate) fn set_insurance_fund_balance(
+    ctx: Context<AdminUpdate>,
+    balance: Pubkey,
+) -> Result<()> {
+    let cfg = &mut ctx.accounts.engine_config;
+    cfg.insurance_fund_balance = balance;
     Ok(())
 }
 

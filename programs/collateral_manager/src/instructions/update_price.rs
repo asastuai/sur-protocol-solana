@@ -33,6 +33,8 @@ pub struct UpdatePrice<'info> {
 pub(crate) fn handler(ctx: Context<UpdatePrice>, new_price: u64) -> Result<()> {
     require!(new_price > 0, CollateralError::ZeroAmount);
     let cfg = &ctx.accounts.config;
+    // N-9 fix: respect the global pause (consistent with deposit/withdraw).
+    require!(!cfg.paused, CollateralError::PausedError);
     let c = &mut ctx.accounts.collateral;
 
     // H-13: bound per-update deviation.

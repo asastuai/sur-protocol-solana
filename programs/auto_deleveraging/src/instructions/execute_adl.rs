@@ -103,7 +103,7 @@ pub(crate) fn handler<'info>(
 
     // Cooldown (Sol:140-142)
     require!(
-        now >= cfg.last_adl_time + cfg.adl_cooldown_secs,
+        now >= cfg.last_adl_time.saturating_add(cfg.adl_cooldown_secs),
         ADLError::CooldownActive
     );
 

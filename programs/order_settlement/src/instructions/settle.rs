@@ -216,6 +216,41 @@ fn settle_trade_inner(ctx: &mut Context<SettleOne>, trade: &MatchedTrade) -> Res
         OrderSettlementError::ExecSizeExceedsTaker
     );
 
+    // ---------- Gate 0c binding (audit N-3 fix) ----------
+    // Bind the forwarded identity + vault-balance accounts to the ed25519-signed
+    // order traders and the configured fee recipient. Without this, a settlement
+    // operator settles a self-signed throwaway order while passing a victim's
+    // AccountBalance as maker/taker_balance — debiting the victim's margin.
+    require!(
+        ctx.accounts.maker_trader.key() == maker.trader,
+        OrderSettlementError::AccountMismatch
+    );
+    require!(
+        ctx.accounts.taker_trader.key() == taker.trader,
+        OrderSettlementError::AccountMismatch
+    );
+    {
+        let pv = cfg.perp_vault_program;
+        let (exp_maker_bal, _) =
+            Pubkey::find_program_address(&[b"balance", maker.trader.as_ref()], &pv);
+        require!(
+            ctx.accounts.maker_balance.key() == exp_maker_bal,
+            OrderSettlementError::AccountMismatch
+        );
+        let (exp_taker_bal, _) =
+            Pubkey::find_program_address(&[b"balance", taker.trader.as_ref()], &pv);
+        require!(
+            ctx.accounts.taker_balance.key() == exp_taker_bal,
+            OrderSettlementError::AccountMismatch
+        );
+        let (exp_fee_bal, _) =
+            Pubkey::find_program_address(&[b"balance", cfg.fee_recipient.as_ref()], &pv);
+        require!(
+            ctx.accounts.fee_recipient_balance.key() == exp_fee_bal,
+            OrderSettlementError::AccountMismatch
+        );
+    }
+
     // ---------- nonce page binding + replay check ----------
     let maker_page = &mut ctx.accounts.maker_nonce_page;
     let taker_page = &mut ctx.accounts.taker_nonce_page;

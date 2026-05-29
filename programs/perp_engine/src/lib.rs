@@ -110,4 +110,11 @@ pub mod perp_engine {
     pub fn accept_ownership(ctx: Context<AcceptOwnership>) -> Result<()> {
         instructions::admin::accept_ownership(ctx)
     }
+
+    pub fn set_insurance_fund_balance(
+        ctx: Context<AdminUpdate>,
+        balance: Pubkey,
+    ) -> Result<()> {
+        instructions::admin::set_insurance_fund_balance(ctx, balance)
+    }
 }
