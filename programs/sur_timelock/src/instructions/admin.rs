@@ -17,6 +17,13 @@ pub struct Initialize<'info> {
     )]
     pub config: Account<'info, TimelockConfig>,
 
+    /// CHECK: timelock_authority PDA — signs dispatched CPIs at execute time.
+    #[account(
+        seeds = [TimelockConfig::AUTHORITY_SEED],
+        bump,
+    )]
+    pub authority: UncheckedAccount<'info>,
+
     /// CHECK: guardian pubkey, identity only.
     pub guardian: UncheckedAccount<'info>,
 
@@ -32,7 +39,9 @@ pub(crate) fn initialize(ctx: Context<Initialize>, delay: i64) -> Result<()> {
 
     let cfg = &mut ctx.accounts.config;
     cfg.bump = ctx.bumps.config;
+    cfg.authority_bump = ctx.bumps.authority;
     cfg.owner = ctx.accounts.owner.key();
+    cfg.pending_owner = Pubkey::default();
     cfg.guardian = ctx.accounts.guardian.key();
     cfg.delay = delay;
     cfg.setup_complete = false;
@@ -84,13 +93,38 @@ pub(crate) fn set_delay(ctx: Context<AdminUpdate>, new_delay: i64) -> Result<()>
 }
 
 pub(crate) fn transfer_ownership(ctx: Context<AdminUpdate>, new_owner: Pubkey) -> Result<()> {
+    // H-9 fix: two-step. transfer_ownership only proposes; the new owner must
+    // accept_ownership, so a typo'd address cannot brick the timelock.
     require!(new_owner != Pubkey::default(), TimelockError::ZeroAddress);
     let cfg = &mut ctx.accounts.config;
+    cfg.pending_owner = new_owner;
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct AcceptOwnership<'info> {
+    #[account(
+        mut,
+        seeds = [TimelockConfig::SEED],
+        bump = config.bump,
+    )]
+    pub config: Account<'info, TimelockConfig>,
+
+    pub pending_owner: Signer<'info>,
+}
+
+pub(crate) fn accept_ownership(ctx: Context<AcceptOwnership>) -> Result<()> {
+    let cfg = &mut ctx.accounts.config;
+    require!(
+        ctx.accounts.pending_owner.key() == cfg.pending_owner,
+        TimelockError::NotPendingOwner
+    );
     let old = cfg.owner;
-    cfg.owner = new_owner;
+    cfg.owner = cfg.pending_owner;
+    cfg.pending_owner = Pubkey::default();
     emit!(OwnershipTransferred {
         old_owner: old,
-        new_owner,
+        new_owner: cfg.owner,
     });
     Ok(())
 }
