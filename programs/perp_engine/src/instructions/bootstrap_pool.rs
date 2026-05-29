@@ -29,6 +29,7 @@ use crate::state::*;
 #[derive(Accounts)]
 pub struct BootstrapEnginePool<'info> {
     #[account(
+        mut,
         seeds = [EngineConfig::SEED],
         bump = engine_config.bump,
         has_one = owner @ EngineError::NotOwner,
@@ -129,6 +130,12 @@ pub(crate) fn handler(ctx: Context<BootstrapEnginePool>, amount: u64) -> Result<
         ],
         &[auth_seeds],
     )?;
+
+    // Record the canonical engine margin pool so every margin/PnL CPI can bind
+    // engine_pool_balance to it (audit Gate 0a: C-1/H-2/N-1 fix). Owner-gated ix,
+    // so the passed engine_pool_balance is trusted at bootstrap time.
+    let pool_key = ctx.accounts.engine_pool_balance.key();
+    ctx.accounts.engine_config.engine_pool = pool_key;
 
     Ok(())
 }

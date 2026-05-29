@@ -64,4 +64,7 @@ pub enum DarkPoolError {
 
     #[msg("Math overflow")]
     MathOverflow,
+
+    #[msg("Account does not match the canonical PDA for the resolved party/market")]
+    InvalidAccount,
 }

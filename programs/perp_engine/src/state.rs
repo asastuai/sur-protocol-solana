@@ -30,14 +30,28 @@ pub struct EngineConfig {
 
     /// Pubkey of the oracle_router program (only this program may push prices).
     pub oracle_router: Pubkey,
+
+    /// Canonical engine margin pool: the engine_authority's AccountBalance PDA on
+    /// perp_vault. Set once at bootstrap_engine_pool. Every margin/PnL CPI requires
+    /// the passed engine_pool_balance == this key (audit Gate 0a: C-1/H-2/N-1 fix).
+    pub engine_pool: Pubkey,
+
+    /// Canonical insurance-fund AccountBalance PDA on perp_vault. Set by the owner
+    /// via set_insurance_fund_balance. Liquidation routes insurance flows only to
+    /// this key (audit N-4 fix). Pubkey::default() = unset (enforcement skipped).
+    pub insurance_fund_balance: Pubkey,
 }
 
 impl EngineConfig {
     pub const SEED: &'static [u8] = b"engine_config";
     pub const AUTHORITY_SEED: &'static [u8] = b"engine_authority";
 
-    // 8 (disc) + 1 + 1 + 32 + 32 + 1 + 32 + 32
-    pub const SIZE: usize = 8 + 1 + 1 + 32 + 32 + 1 + 32 + 32;
+    /// perp_vault AccountBalance seed prefix (mirrors perp_vault::AccountBalance::SEED_PREFIX).
+    /// Hardcoded to avoid a cross-program type dep (manual invoke_signed design).
+    pub const VAULT_BALANCE_SEED: &'static [u8] = b"balance";
+
+    // 8 (disc) + 1 + 1 + 32 + 32 + 1 + 32 + 32 + 32 (engine_pool) + 32 (insurance_fund_balance)
+    pub const SIZE: usize = 8 + 1 + 1 + 32 + 32 + 1 + 32 + 32 + 32 + 32;
 }
 
 // ============================================================
@@ -76,8 +90,8 @@ pub struct Market {
 impl Market {
     pub const SEED_PREFIX: &'static [u8] = b"market";
 
-    // 8 (disc) + 1 + 32 + 1 + 8*7 (u64 fields) + 8 (i64)
-    pub const SIZE: usize = 8 + 1 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8;
+    // 8 (disc) + 1 (bump) + 32 (market_id) + 1 (active) + 8 * 8 (seven u64 + one i64)
+    pub const SIZE: usize = 8 + 1 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8;
 }
 
 // ============================================================

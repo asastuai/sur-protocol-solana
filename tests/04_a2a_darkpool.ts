@@ -365,4 +365,131 @@ describe("a2a_darkpool", () => {
     );
     assert.equal(creatorRep.completedTrades.toNumber(), 1);
   });
+
+  // ============================================================
+  // SECURITY REGRESSION — audit C-1 (Gate 0b fix)
+  // ============================================================
+  // Before the fix, accept_and_settle forwarded buyer/seller/fee_recipient
+  // balances as unbound UncheckedAccounts. An unprivileged intent_creator could
+  // pass their OWN balance as fee_recipient_balance and keep the fees (or a
+  // victim's balance as buyer_balance and drain it), because the darkpool signs
+  // the vault CPI as a registered operator. The Gate 0b binding rejects any
+  // non-canonical balance/market. This test proves the attack now reverts.
+  it("SECURITY (C-1): rejects fee_recipient_balance substitution", async () => {
+    const intentId = new anchor.BN(2);
+    const responseId = new anchor.BN(2);
+
+    // attacker == intentCreator posts a fresh intent (permissionless).
+    await program.methods
+      .postIntent(
+        Array.from(marketIdBtc),
+        true,
+        new anchor.BN(1 * 100_000_000),
+        new anchor.BN(49_800 * 1_000_000),
+        new anchor.BN(50_200 * 1_000_000),
+        new anchor.BN(3600),
+      )
+      .accounts({
+        config: configPda,
+        intent: intentPda(intentId),
+        reputation: reputationPda(intentCreator.publicKey),
+        agent: intentCreator.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([intentCreator])
+      .rpc();
+
+    // Fresh, funded responder (avoids the response cooldown on `responder`).
+    const responder2 = Keypair.generate();
+    const sig = await provider.connection.requestAirdrop(
+      responder2.publicKey,
+      2 * LAMPORTS_PER_SOL,
+    );
+    await provider.connection.confirmTransaction(sig);
+    const ata2 = await createAccount(
+      provider.connection,
+      responder2,
+      usdcMint,
+      responder2.publicKey,
+    );
+    await mintTo(provider.connection, owner, usdcMint, ata2, owner, 10_000 * 1_000_000);
+    await vault.methods
+      .deposit(new anchor.BN(10_000 * 1_000_000))
+      .accounts({
+        vaultConfig: vaultConfigPda,
+        usdcVault: usdcVaultPda,
+        userUsdc: ata2,
+        accountBalance: balancePda(responder2.publicKey),
+        depositor: responder2.publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([responder2])
+      .rpc();
+
+    await program.methods
+      .postResponse(new anchor.BN(50_000 * 1_000_000), new anchor.BN(600))
+      .accounts({
+        config: configPda,
+        intent: intentPda(intentId),
+        response: responsePda(responseId),
+        reputation: reputationPda(responder2.publicKey),
+        responder: responder2.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([responder2])
+      .rpc();
+
+    // ATTACK: substitute the attacker's OWN balance as fee_recipient_balance.
+    let reverted = false;
+    try {
+      await program.methods
+        .acceptAndSettle()
+        .accounts({
+          config: configPda,
+          intent: intentPda(intentId),
+          response: responsePda(responseId),
+          intentCreatorReputation: reputationPda(intentCreator.publicKey),
+          responderReputation: reputationPda(responder2.publicKey),
+          intentCreator: intentCreator.publicKey,
+          darkpoolAuthority: darkpoolAuthorityPda,
+          perpEngineProgram: engine.programId,
+          engineConfig: engineConfigPda,
+          engineMarket: engineMarketPda,
+          buyerPosition: positionPda(intentCreator.publicKey),
+          sellerPosition: positionPda(responder2.publicKey),
+          buyerTrader: intentCreator.publicKey,
+          sellerTrader: responder2.publicKey,
+          engineOperatorAccount: engineOperatorPda(darkpoolAuthorityPda),
+          engineAuthority: engineAuthorityPda,
+          engineVaultOperator: vaultOperatorPda(engineAuthorityPda),
+          enginePoolBalance: balancePda(engineAuthorityPda),
+          perpVaultProgram: vault.programId,
+          vaultConfig: vaultConfigPda,
+          vaultOperatorAccount: vaultOperatorPda(darkpoolAuthorityPda),
+          buyerBalance: balancePda(intentCreator.publicKey),
+          sellerBalance: balancePda(responder2.publicKey),
+          // <-- ATTACK: attacker's own balance instead of the configured fee recipient
+          feeRecipientBalance: balancePda(intentCreator.publicKey),
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([intentCreator])
+        .rpc();
+    } catch (e) {
+      reverted = true;
+      assert.include(
+        e.toString(),
+        "InvalidAccount",
+        "expected the canonical-PDA binding to reject the substituted fee balance",
+      );
+    }
+    assert.isTrue(
+      reverted,
+      "C-1 attack must revert: fee_recipient_balance substitution should fail the Gate 0b binding",
+    );
+
+    // Sanity: the intent is still Open (no state mutated — binding fires pre-CEI).
+    const intent = await program.account.intent.fetch(intentPda(intentId));
+    assert.deepEqual(intent.status, { open: {} });
+  });
 });

@@ -170,7 +170,14 @@ pub(crate) fn handler(
     // existing CPI callers until they are migrated).
     let additional_margin = required_margin.saturating_sub(old_margin);
 
-    if additional_margin > 0 && ctx.remaining_accounts.len() >= 6 {
+    if additional_margin > 0 {
+        // H-1 fix: margin lock is MANDATORY when margin is required. Never skip it
+        // because a caller omitted accounts (that path opened phantom-collateral
+        // positions with no USDC locked → protocol insolvency).
+        require!(
+            ctx.remaining_accounts.len() >= 6,
+            EngineError::InvalidParam
+        );
         let auth_bump = cfg.authority_bump;
         let auth_seeds: &[&[u8]] = &[EngineConfig::AUTHORITY_SEED, std::slice::from_ref(&auth_bump)];
 
@@ -185,6 +192,15 @@ pub(crate) fn handler(
             vault_program.key() == cfg.perp_vault,
             EngineError::InvalidParam
         );
+        // Gate 0a binding: pool + trader balance + authority must be canonical.
+        require!(cfg.engine_pool != Pubkey::default(), EngineError::InvalidParam);
+        require!(engine_pool_balance.key() == cfg.engine_pool, EngineError::InvalidParam);
+        crate::instructions::cpi_util::assert_canonical_balance(
+            trader_balance,
+            &position.trader,
+            &cfg.perp_vault,
+        )?;
+        crate::instructions::cpi_util::assert_engine_authority(authority, cfg.authority_bump)?;
 
         invoke_vault_internal_transfer_raw(
             vault_program,
