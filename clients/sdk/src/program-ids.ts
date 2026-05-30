@@ -8,16 +8,16 @@ import { PublicKey } from "@solana/web3.js";
  * canonical for **devnet/testnet/dev**. Mainnet rotation happens at v1.0.
  */
 export const SUR_PROGRAM_IDS = {
-  a2a_darkpool: new PublicKey("BVrt7REAZoCZBEY987fUPEjn2EvnXyaFzpMPVXb81rnq"),
-  perp_vault: new PublicKey("FpbuRBF3RiAkpD3k8XccnoYH99W5g9R59aRd3jRZTBfU"),
-  oracle_router: new PublicKey("CC5Xc5DTyLSfcw3MiXbyJQyRA21mh3Shup6bgMH8WGSS"),
-  perp_engine: new PublicKey("Cwpbe4mwgFdnhwhoRBGBzUerQa52cJMqXWjG3wGvYFW8"),
-  sur_timelock: new PublicKey("9FeQoWChgaRqvKJGqjTmVvpF7jQ4Ph7zgSsrkA4NnwAF"),
+  a2a_darkpool: new PublicKey("DAK23pRLEr7E4JaSGRpeo8TEV5fjz6edqS5ZbvnJ5sAR"),
+  perp_vault: new PublicKey("2iidk56xin9riWJDdfR9BpFU3sLH4oZbPwQrK64Y3xf1"),
+  oracle_router: new PublicKey("8yLenSHEkdkbsCiQLmiQrZg7Kdb3ZBb1MKTFmJsA37zk"),
+  perp_engine: new PublicKey("28pVZVVY2MyxmukdDTcz85zD88TsfDBhqovgU6ARW6SX"),
+  sur_timelock: new PublicKey("HBAd2wkpL3zuuvHG5VmPWvVz66U2u9G4SGH4XKavVFga"),
   // Phase 2 — second half
-  liquidator: new PublicKey("9APXqgHS7aNtYsjDE1SJ6PiboJPSyv2QhG9SmLaCzg2R"),
-  insurance_fund: new PublicKey("A9TY4wcr6Buzrac5XLC5aQvz4wWyYjQSogsVBvS3eKPp"),
-  auto_deleveraging: new PublicKey("F12KjhGRyiEbM629MHookPFar7xsbfbfafoZjuBmCTDz"),
-  collateral_manager: new PublicKey("2LavJpzUzHWs2cJTAp2BEvvS2Kxrr9gfaWgSVH4s3juh"),
-  trading_vault: new PublicKey("JE4JwZ3b7eYoBsTempCUbkBiFAgYrTsisn2uMssWGvCy"),
-  order_settlement: new PublicKey("2q4HtPAjUMFPDfipazQhb52sRun3x9TdpwRHysWBg6Vf"),
+  liquidator: new PublicKey("38zdeFX8qeXep53DYRM8ssBEQwu9Ztja6HBFGxrhpDUy"),
+  insurance_fund: new PublicKey("33WMHTYxURf1t65CoHuPGSD1ZPcRQ3KQi22Bdo92nxpA"),
+  auto_deleveraging: new PublicKey("J6qRhEyU45T17LhiPyoKGrHUvcMEKgH6iy5kxNUvcEHn"),
+  collateral_manager: new PublicKey("94Pu8AJXwwpoexNfs6oQ4SEq6x3sRhyLEA5AvNPuLGc1"),
+  trading_vault: new PublicKey("8eXKqX7ZwVrJUH78urAsVoBiQQ1tgifmfBwhdiMepT3K"),
+  order_settlement: new PublicKey("6YiGUHjvSPKzS3ypDvodsbqH4ibiV3xTfq5FJeW5kfmo"),
 } as const;

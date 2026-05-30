@@ -23,7 +23,7 @@ import * as os from "os";
 import * as path from "path";
 
 const PERP_ENGINE_PROGRAM_ID = new PublicKey(
-  "Cwpbe4mwgFdnhwhoRBGBzUerQa52cJMqXWjG3wGvYFW8",
+  "28pVZVVY2MyxmukdDTcz85zD88TsfDBhqovgU6ARW6SX",
 );
 
 async function main() {
