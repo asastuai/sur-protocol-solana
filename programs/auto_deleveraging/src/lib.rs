@@ -19,7 +19,7 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("F12KjhGRyiEbM629MHookPFar7xsbfbfafoZjuBmCTDz");
+declare_id!("J6qRhEyU45T17LhiPyoKGrHUvcMEKgH6iy5kxNUvcEHn");
 
 #[program]
 pub mod auto_deleveraging {

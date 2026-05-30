@@ -1,5 +1,5 @@
 {
-  "usdcMint": "531Kuibtkhht9sZiqaoYRGm8c6agQz9iScZQEDctokEn",
+  "usdcMint": "HPPfibzQ5GYgjBpBsRNXxD8MUKasBFwpR3UpjFqBbzny",
   "markets": [
     {
       "symbol": "BTC-USD",
@@ -18,9 +18,9 @@
     }
   ],
   "deployer": "4gAdo7R69XgZJ2QazB1N2o21nfY2gjto9KijUDzjg6kv",
-  "initializedAt": "2026-05-14T02:13:31.571Z",
+  "initializedAt": "2026-05-30T15:20:46.895Z",
   "steps": {
-    "perp_vault.initialize": "skipped",
+    "perp_vault.initialize": "ok",
     "oracle_router.initialize": "ok",
     "perp_engine.initialize": "ok",
     "sur_timelock.initialize": "ok",
@@ -47,12 +47,13 @@
     "oracle_router.set_operator.deployer": "ok",
     "perp_engine.bootstrap_engine_pool": "ok",
     "insurance_fund.bootstrap_insurance_pool": "ok",
+    "perp_engine.set_insurance_fund_balance": "ok",
     "engine.add_market.BTC-USD": "ok",
     "engine.add_market.SOL-USD": "ok",
     "engine.add_market.ETH-USD": "ok",
     "engine.update_mark_price.BTC-USD": "ok",
     "engine.update_mark_price.SOL-USD": "ok",
     "engine.update_mark_price.ETH-USD": "ok",
-    "mint_test_usdc": "skipped"
+    "mint_test_usdc": "ok"
   }
 }

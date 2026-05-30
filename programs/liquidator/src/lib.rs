@@ -20,7 +20,7 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("9APXqgHS7aNtYsjDE1SJ6PiboJPSyv2QhG9SmLaCzg2R");
+declare_id!("38zdeFX8qeXep53DYRM8ssBEQwu9Ztja6HBFGxrhpDUy");
 
 #[program]
 pub mod liquidator {

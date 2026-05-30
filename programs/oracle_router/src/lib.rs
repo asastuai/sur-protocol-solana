@@ -21,7 +21,7 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("CC5Xc5DTyLSfcw3MiXbyJQyRA21mh3Shup6bgMH8WGSS");
+declare_id!("8yLenSHEkdkbsCiQLmiQrZg7Kdb3ZBb1MKTFmJsA37zk");
 
 #[program]
 pub mod oracle_router {

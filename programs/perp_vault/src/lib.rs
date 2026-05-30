@@ -16,7 +16,7 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("FpbuRBF3RiAkpD3k8XccnoYH99W5g9R59aRd3jRZTBfU");
+declare_id!("2iidk56xin9riWJDdfR9BpFU3sLH4oZbPwQrK64Y3xf1");
 
 #[program]
 pub mod perp_vault {

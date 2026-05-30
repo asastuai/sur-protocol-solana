@@ -20,7 +20,7 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("9FeQoWChgaRqvKJGqjTmVvpF7jQ4Ph7zgSsrkA4NnwAF");
+declare_id!("HBAd2wkpL3zuuvHG5VmPWvVz66U2u9G4SGH4XKavVFga");
 
 #[program]
 pub mod sur_timelock {

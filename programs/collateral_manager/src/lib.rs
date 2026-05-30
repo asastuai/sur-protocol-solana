@@ -26,7 +26,7 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("2LavJpzUzHWs2cJTAp2BEvvS2Kxrr9gfaWgSVH4s3juh");
+declare_id!("94Pu8AJXwwpoexNfs6oQ4SEq6x3sRhyLEA5AvNPuLGc1");
 
 #[program]
 pub mod collateral_manager {

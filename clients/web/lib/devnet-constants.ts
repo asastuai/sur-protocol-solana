@@ -29,7 +29,7 @@ import { PublicKey } from "@solana/web3.js";
 // Canonical Solana devnet USDC mint published by Circle / SPL maintainers.
 // (https://spl.solana.com / Solana cookbook — devnet USDC faucet mint)
 export const DEVNET_USDC_MINT = new PublicKey(
-  "531Kuibtkhht9sZiqaoYRGm8c6agQz9iScZQEDctokEn",
+  "HPPfibzQ5GYgjBpBsRNXxD8MUKasBFwpR3UpjFqBbzny",
 );
 
 // USDC has 6 decimals on every cluster.
