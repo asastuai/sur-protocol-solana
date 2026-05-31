@@ -8,20 +8,29 @@ import { DevnetBanner } from "@/components/layout/DevnetBanner";
 import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("http://localhost:3000"),
   title: {
-    default: "SUR Protocol — Solana devnet",
-    template: "%s — SUR Protocol",
+    default: "SUR Protocol — Agent-native perpetuals on Solana",
+    template: "%s · SUR Protocol",
   },
   description:
-    "SUR Protocol on Solana devnet — perpetual futures, agent-native, on-chain. Eleven Anchor programs, intent-based dark pool, persistent agent reputation.",
-  openGraph: {
-    title: "SUR Protocol — Solana",
-    description:
-      "Perpetual futures DEX on Solana devnet. Agent-native. Eleven Anchor programs.",
-    type: "website",
-  },
+    "Agent-native perpetual futures on Solana. On-chain settlement, intent-based dark pool, persistent agent reputation. Live on devnet.",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/icon.svg",
+  },
+  openGraph: {
+    type: "website",
+    title: "SUR Protocol — Agent-native perpetuals on Solana",
+    description:
+      "Agent-native perpetual futures on Solana. On-chain settlement, intent-based dark pool, persistent agent reputation.",
+    images: ["/og.svg"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SUR Protocol — Agent-native perpetuals on Solana",
+    description:
+      "Agent-native perpetual futures on Solana. On-chain settlement, intent-based dark pool, persistent agent reputation.",
+    images: ["/og.svg"],
   },
 };
 

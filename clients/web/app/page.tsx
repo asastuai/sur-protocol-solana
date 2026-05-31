@@ -1,17 +1,72 @@
 "use client";
 
 import Link from "next/link";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletButton } from "@/components/layout/WalletButton";
-import { truncatePubkey } from "@/lib/formatters";
+import {
+  Lock,
+  Brain,
+  Zap,
+  Coins,
+  Boxes,
+  TerminalSquare,
+  ArrowRight,
+  type LucideIcon,
+} from "lucide-react";
+
+import { MARKETS } from "@/lib/markets";
+import { MarketCard } from "@/components/markets/MarketCard";
+import { ProgramGrid } from "@/components/trust/ProgramGrid";
+
+// Drive the live-markets row from the canonical market list so this page
+// never drifts from on-chain truth (only BTC/SOL/ETH exist on Solana).
+const FEATURED = MARKETS;
+
+interface FeatureTile {
+  icon: LucideIcon;
+  title: string;
+  body: string;
+}
+
+const FEATURES: ReadonlyArray<FeatureTile> = [
+  {
+    icon: Brain,
+    title: "Agent Dark Pool",
+    body: "Agents post and match intents off-book before settling on-chain.",
+  },
+  {
+    icon: Boxes,
+    title: "Persistent Reputation",
+    body: "Every agent carries an on-chain reputation record across trades.",
+  },
+  {
+    icon: Zap,
+    title: "Atomic Settlement",
+    body: "Commit then settle — fills clear in a single on-chain transaction.",
+  },
+  {
+    icon: Coins,
+    title: "Multi-asset Collateral",
+    body: "A non-custodial vault backs your positions with on-chain margin.",
+  },
+  {
+    icon: Lock,
+    title: "11 On-chain Programs",
+    body: "Engine, vault, oracle, dark pool and more — all verifiable on devnet.",
+  },
+  {
+    icon: TerminalSquare,
+    title: "MCP Tool API",
+    body: "A tool surface that lets AI agents trade the protocol directly.",
+  },
+];
 
 export default function LandingPage() {
-  const { publicKey, connected } = useWallet();
-
   return (
     <div className="relative">
-      {/* Hero */}
-      <section className="relative px-6 pt-20 pb-24 overflow-hidden">
+      {/* ============================================================ */}
+      {/*  1. HERO                                                     */}
+      {/* ============================================================ */}
+      <section className="relative overflow-hidden px-6 pb-24 pt-20">
+        {/* Gradient glow */}
         <div
           aria-hidden
           className="absolute inset-0 -z-10"
@@ -20,6 +75,7 @@ export default function LandingPage() {
               "radial-gradient(ellipse 60% 50% at 50% 30%, rgba(30,128,255,0.10) 0%, transparent 70%), radial-gradient(ellipse 40% 30% at 30% 70%, rgba(14,203,129,0.06) 0%, transparent 60%)",
           }}
         />
+        {/* Masked grid */}
         <div
           aria-hidden
           className="absolute inset-0 -z-10 opacity-30"
@@ -34,126 +90,113 @@ export default function LandingPage() {
           }}
         />
 
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sur-accent/10 border border-sur-accent/20 text-xs text-sur-accent font-medium mb-8">
-            <span className="w-1.5 h-1.5 rounded-full bg-sur-green live-dot" />
-            Solana devnet — read paths live
+        <div className="mx-auto max-w-4xl text-center animate-fade-in">
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-sur-accent/20 bg-sur-accent/10 px-3 py-1 text-xs font-medium text-sur-accent">
+            <span className="live-dot h-1.5 w-1.5 rounded-full bg-sur-green" />
+            Live on Devnet
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight mb-6">
-            Perpetual futures.
+          <h1 className="mb-6 text-4xl font-bold leading-tight tracking-tight md:text-6xl">
+            Perpetual futures,
             <br />
-            <span className="bg-gradient-to-r from-sur-accent via-blue-400 to-sur-green bg-clip-text text-transparent">
-              Agent-native. On Solana.
+            <span className="bg-gradient-to-r from-[#9945FF] via-[#8B5CF6] to-[#14F195] bg-clip-text text-transparent">
+              agent-native, on Solana.
             </span>
           </h1>
 
-          <p className="text-lg text-sur-muted max-w-2xl mx-auto leading-relaxed mb-10">
-            Eleven Anchor programs deployed on devnet. Read paths to markets,
-            vault balance, positions, and engine view are wired end-to-end.
-            Write paths ready behind Phase 9 init.
+          <p className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-sur-muted">
+            A non-custodial vault, an agent dark pool, and atomic on-chain
+            settlement. Trade perps yourself or let agents trade for you —
+            every fill clears on-chain.
           </p>
 
-          <div className="flex flex-wrap gap-3 justify-center mb-12">
+          <div className="flex flex-wrap justify-center gap-3">
             <Link
               href="/trade"
-              className="px-6 py-3 rounded-lg bg-sur-accent text-white text-sm font-semibold hover:brightness-110 transition-all"
+              className="group inline-flex items-center gap-2 rounded-lg bg-sur-accent px-6 py-3 text-sm font-semibold text-white transition-all hover:brightness-110"
             >
               Open Trade
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
             <Link
-              href="/dashboard"
-              className="px-6 py-3 rounded-lg bg-sur-surface border border-sur-border text-sur-text text-sm font-semibold hover:bg-white/[0.04] transition-colors"
+              href="/docs"
+              className="inline-flex items-center gap-2 rounded-lg border border-sur-border bg-sur-surface px-6 py-3 text-sm font-semibold text-sur-text transition-colors hover:bg-white/[0.04]"
             >
-              View Dashboard
+              Read docs
             </Link>
-            <WalletButton />
           </div>
-
-          {connected && publicKey && (
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sur-surface border border-sur-border font-mono text-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-sur-green" />
-              <span className="text-sur-muted">connected:</span>
-              <span className="text-sur-text">
-                {truncatePubkey(publicKey.toBase58())}
-              </span>
-            </div>
-          )}
         </div>
       </section>
 
-      {/* Features grid */}
+      {/* ============================================================ */}
+      {/*  2. LIVE MARKETS                                             */}
+      {/* ============================================================ */}
       <section className="px-6 pb-24">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-sm font-semibold text-sur-muted uppercase tracking-wider mb-8 text-center">
-            What ships in this port
+        <div className="mx-auto max-w-5xl animate-slide-up">
+          <div className="mb-6 flex items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-sur-muted">
+              Live markets
+            </h2>
+            <Link
+              href="/trade"
+              className="inline-flex items-center gap-1 text-xs font-medium text-sur-accent transition-colors hover:text-sur-text"
+            >
+              View all
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURED.map((market) => (
+              <MarketCard key={market.symbol} market={market} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================ */}
+      {/*  3. FEATURE TILES                                           */}
+      {/* ============================================================ */}
+      <section className="px-6 pb-24">
+        <div className="mx-auto max-w-5xl">
+          <h2 className="mb-8 text-center text-sm font-semibold uppercase tracking-wider text-sur-muted">
+            Built for humans and agents
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Feature
-              title="Anchor programs"
-              body="Eleven SUR programs deployed on devnet: perp_engine, perp_vault, order_settlement, oracle_router, liquidator, insurance_fund, a2a_darkpool, auto_deleveraging, collateral_manager, sur_timelock, trading_vault."
-            />
-            <Feature
-              title="Wallet-adapter"
-              body="Phantom, Solflare, Backpack — wired through the Solana wallet-adapter stack. Devnet-only for now. No Privy, no social login."
-            />
-            <Feature
-              title="Read + write paths"
-              body="useMarkets, useVaultBalance, useOpenPositions, useEngineView for read. useDepositUSDC, useWithdrawUSDC, useOpenPosition, useClosePosition for write."
-            />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((feature) => (
+              <FeatureTile key={feature.title} {...feature} />
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Status section */}
+      {/* ============================================================ */}
+      {/*  4. TRUST STRIP                                             */}
+      {/* ============================================================ */}
       <section className="px-6 pb-32">
-        <div className="max-w-4xl mx-auto bg-sur-surface border border-sur-border rounded-xl p-6">
-          <h3 className="text-sm font-semibold text-sur-text mb-3">
-            Phase 5 status
-          </h3>
-          <p className="text-sm text-sur-muted leading-relaxed mb-4">
-            UI ported from the EVM reference frontend. Layout, components,
-            and pages are wired to Solana on-chain reads via the Phase 3
-            hooks and to write paths via the Phase 4 tx hooks. Charts
-            (Phase 6) and dark-pool / agent panels (Phase 7) are stubbed.
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-            <StatusItem label="Programs" value="11/11 deployed" tone="ok" />
-            <StatusItem label="Read paths" value="wired" tone="ok" />
-            <StatusItem label="Write paths" value="wired" tone="ok" />
-            <StatusItem label="Init" value="Phase 9" tone="warn" />
+        <div className="mx-auto max-w-5xl">
+          <div className="panel p-6">
+            <p className="mb-5 text-xs leading-relaxed text-sur-muted">
+              Verifiable on devnet — every program below is deployed on-chain
+              and links to Solana Explorer. Nothing here is a black box.
+            </p>
+            <ProgramGrid />
           </div>
         </div>
       </section>
+
+      {/* Footer lives in the root layout — do not add one here. */}
     </div>
   );
 }
 
-function Feature({ title, body }: { title: string; body: string }) {
+function FeatureTile({ icon: Icon, title, body }: FeatureTile) {
   return (
-    <div className="bg-sur-surface border border-sur-border rounded-xl p-5">
-      <h3 className="text-sm font-semibold text-sur-text mb-2">{title}</h3>
-      <p className="text-xs text-sur-muted leading-relaxed">{body}</p>
-    </div>
-  );
-}
-
-function StatusItem({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: "ok" | "warn";
-}) {
-  const color = tone === "ok" ? "text-sur-green" : "text-sur-yellow";
-  return (
-    <div>
-      <div className="text-[10px] uppercase tracking-wider text-sur-muted">
-        {label}
+    <div className="group rounded-xl border border-sur-border bg-sur-surface p-5 transition-colors hover:border-white/15 hover:bg-sur-surface-2">
+      <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-sur-gradient text-white">
+        <Icon className="h-5 w-5" strokeWidth={1.75} />
       </div>
-      <div className={`text-sm font-medium ${color} mt-1`}>{value}</div>
+      <h3 className="mb-1.5 text-sm font-semibold text-sur-text">{title}</h3>
+      <p className="text-xs leading-relaxed text-sur-muted">{body}</p>
     </div>
   );
 }

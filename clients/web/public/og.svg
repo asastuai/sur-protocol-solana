@@ -1,0 +1,61 @@
+<!-- 1200x630 social share card. SUR wordmark + tagline on the dark
+     surface with the brand gradient accent + a "Powered by Solana" line
+     using the Solana brand gradient. Note: most scrapers prefer PNG for
+     og:image — rasterize this to og.png (1200x630) at build/release time;
+     this SVG is the editable source of truth. -->
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="surBrand" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1E80FF" />
+      <stop offset="100%" stop-color="#0ECB81" />
+    </linearGradient>
+    <linearGradient id="solBrand" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#9945FF" />
+      <stop offset="100%" stop-color="#14F195" />
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.0" r="0.9">
+      <stop offset="0%" stop-color="#1E80FF" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#0B0E11" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0B0E11" />
+  <rect width="1200" height="630" fill="url(#glow)" />
+
+  <!-- Top gradient hairline -->
+  <rect x="0" y="0" width="1200" height="6" fill="url(#surBrand)" />
+
+  <!-- Monogram badge -->
+  <g transform="translate(96, 96)">
+    <rect x="0" y="0" width="96" height="96" rx="22" fill="#12161C" stroke="url(#surBrand)" stroke-width="3" />
+    <path
+      d="M66 33c-3.7-3.6-9-5.7-15-5.7-9 0-15.7 5-15.7 12 0 6.4 4.8 9.4 13.5 11.4 8.7 2 11.7 3.3 11.7 6.9 0 3.9-4 6.3-9.9 6.3-5.7 0-10.5-2.4-14.1-6.3"
+      stroke="url(#surBrand)"
+      stroke-width="6.5"
+      stroke-linecap="round"
+      fill="none"
+    />
+  </g>
+
+  <!-- Wordmark -->
+  <text x="220" y="170" font-family="Inter, system-ui, sans-serif" font-size="64" font-weight="700" fill="#EAECEF">
+    SUR Protocol
+  </text>
+
+  <!-- Tagline -->
+  <text x="96" y="340" font-family="Inter, system-ui, sans-serif" font-size="84" font-weight="800" letter-spacing="-1">
+    <tspan fill="#EAECEF">Agent-native perpetuals</tspan>
+  </text>
+  <text x="96" y="440" font-family="Inter, system-ui, sans-serif" font-size="84" font-weight="800" letter-spacing="-1">
+    <tspan fill="url(#surBrand)">on Solana</tspan>
+  </text>
+
+  <!-- Footer: Powered by Solana -->
+  <text x="96" y="556" font-family="Inter, system-ui, sans-serif" font-size="30" font-weight="500" fill="#848E9C">
+    Powered by
+  </text>
+  <text x="282" y="556" font-family="Inter, system-ui, sans-serif" font-size="30" font-weight="700" fill="url(#solBrand)">
+    Solana
+  </text>
+</svg>
