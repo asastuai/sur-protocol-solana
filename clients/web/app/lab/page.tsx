@@ -10,11 +10,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-const INK = "#0a0a0a";
-const BONE = "#e8e4d8";
-const GOLD = "#c9a96e";
-const ASH = "#2a2a2a";
-const RUST = "#b7410e";
+import { useClock, Stamp, Leader, DashedPanel } from "@/components/dossier/kit";
 
 const BOOT_LINES = [
   "establishing rpc link",
@@ -40,42 +36,6 @@ const SAMPLE = {
     { sym: "ETH-PERP", mark: "3,410.00", oiL: "11,240", oiS: "9,870" },
   ],
 };
-
-function useClock() {
-  const [t, setT] = useState("--:--:--");
-  useEffect(() => {
-    const fmt = () => {
-      const d = new Date();
-      const p = (n: number) => String(n).padStart(2, "0");
-      setT(`${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`);
-    };
-    fmt();
-    const id = setInterval(fmt, 1000);
-    return () => clearInterval(id);
-  }, []);
-  return t;
-}
-
-function Leader() {
-  return (
-    <span
-      aria-hidden
-      className="mx-3 flex-1 self-end border-b border-dotted"
-      style={{ borderColor: "#4a4636", marginBottom: 4 }}
-    />
-  );
-}
-
-function Stamp({ children, tone = GOLD }: { children: React.ReactNode; tone?: string }) {
-  return (
-    <span
-      className="inline-block px-2 py-0.5 text-[10px] uppercase tracking-[0.2em]"
-      style={{ border: `1px solid ${tone}`, color: tone }}
-    >
-      {children}
-    </span>
-  );
-}
 
 export default function LabPage() {
   const [phase, setPhase] = useState<"boot" | "open">("boot");
@@ -104,19 +64,13 @@ export default function LabPage() {
   }, []);
 
   return (
-    <div
-      className="lab-scan lab-grain min-h-screen font-mono"
-      style={{ background: INK, color: BONE }}
-    >
+    <div className="lab-scan lab-grain min-h-screen overflow-x-hidden bg-ink font-mono text-bone">
       {/* ===== BOOT OVERLAY ===== */}
       {phase === "boot" && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center px-6"
-          style={{ background: INK }}
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink px-6">
           <div className="w-full max-w-xl text-[13px] leading-relaxed">
-            <div className="mb-5" style={{ color: GOLD }}>
-              SUR://portfolio_console <span style={{ color: BONE }}>— solana devnet</span>
+            <div className="mb-5 text-gold">
+              SUR://portfolio_console <span className="text-bone">— solana devnet</span>
             </div>
             {BOOT_LINES.map((line, i) => (
               <div
@@ -124,18 +78,16 @@ export default function LabPage() {
                 className="flex items-baseline"
                 style={{ opacity: i < step ? 1 : 0.15, transition: "opacity .15s" }}
               >
-                <span style={{ color: BONE }}>{line}</span>
+                <span className="text-bone">{line}</span>
                 <Leader />
-                <span style={{ color: i < step ? GOLD : ASH }}>
+                <span className={i < step ? "text-gold" : "text-ash"}>
                   {i < step ? "ok" : "··"}
                 </span>
               </div>
             ))}
-            <div className="mt-5" style={{ color: BONE }}>
+            <div className="mt-5 text-bone">
               {step >= BOOT_LINES.length ? "opening portfolio" : "scanning"}
-              <span className="lab-cursor" style={{ color: GOLD }}>
-                _
-              </span>
+              <span className="lab-cursor text-gold">_</span>
             </div>
           </div>
         </div>
@@ -143,19 +95,13 @@ export default function LabPage() {
 
       {/* ===== DOSSIER ===== */}
       {phase === "open" && (
-        <div className="lab-reveal mx-auto max-w-5xl px-5 py-8 md:px-8">
+        <div className="lab-reveal mx-auto w-full max-w-5xl px-4 py-8 md:px-8">
           {/* status bar */}
-          <div
-            className="mb-7 flex items-center justify-between border-b border-dashed pb-3 text-[11px] uppercase tracking-[0.18em]"
-            style={{ borderColor: ASH, color: "#8a8678" }}
-          >
-            <span style={{ color: GOLD }}>SUR://portfolio_console</span>
+          <div className="mb-7 flex items-center justify-between border-b border-dashed border-ash pb-3 text-[11px] uppercase tracking-[0.18em] text-sur-muted">
+            <span className="text-gold">SUR://portfolio_console</span>
             <span className="flex items-center gap-4">
               <span className="flex items-center gap-1.5">
-                <span
-                  className="inline-block h-1.5 w-1.5 rounded-full"
-                  style={{ background: GOLD }}
-                />
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-gold" />
                 devnet
               </span>
               <span>{clock}</span>
@@ -164,124 +110,86 @@ export default function LabPage() {
           </div>
 
           {/* folder tab + cover */}
-          <div className="relative">
-            <div
-              className="inline-flex items-center gap-2 border border-b-0 px-4 py-1.5 text-[11px] uppercase tracking-[0.22em]"
-              style={{ borderColor: GOLD, color: GOLD, background: "#12110d" }}
-            >
-              ▸ Portfolio
-            </div>
-            <div
-              className="border border-dashed p-6 md:p-8"
-              style={{ borderColor: GOLD }}
-            >
-              {/* cover heading */}
-              <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-                <div>
-                  <h1
-                    className="text-3xl md:text-5xl tracking-tight"
-                    style={{ fontFamily: "Georgia, ui-serif, serif", color: BONE }}
-                  >
-                    Portfolio Dossier
-                  </h1>
-                  <p className="mt-1 text-[12px]" style={{ color: "#8a8678" }}>
-                    handler · {clock} · solana devnet
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Stamp>Devnet // 2026</Stamp>
-                  <Stamp tone={RUST}>Prototype</Stamp>
-                  <Stamp tone="#8a8678">Sample data</Stamp>
-                </div>
+          <DashedPanel title="Portfolio" bodyClassName="p-6 md:p-8">
+            {/* cover heading */}
+            <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h1 className="font-display text-3xl tracking-tight text-bone md:text-5xl">
+                  Portfolio Dossier
+                </h1>
+                <p className="mt-1 text-[12px] text-sur-muted">
+                  handler · {clock} · solana devnet
+                </p>
               </div>
+              <div className="flex flex-wrap gap-2">
+                <Stamp>Devnet // 2026</Stamp>
+                <Stamp tone="rust">Prototype</Stamp>
+                <Stamp tone="muted">Sample data</Stamp>
+              </div>
+            </div>
 
-              {/* summary sheet */}
-              <div
-                className="grid grid-cols-2 border border-dashed md:grid-cols-4"
-                style={{ borderColor: ASH }}
-              >
-                {[
-                  { k: "Total equity", v: `$${SAMPLE.equity}`, tone: BONE },
-                  { k: "Free balance", v: `$${SAMPLE.free}`, tone: BONE },
-                  { k: "Unrealized PnL", v: `$${SAMPLE.upnl}`, tone: GOLD },
-                  { k: "Open positions", v: String(SAMPLE.positions), tone: BONE },
-                ].map((s, i) => (
+            {/* summary sheet */}
+            <div className="grid grid-cols-2 border border-dashed border-ash md:grid-cols-4">
+              {[
+                { k: "Total equity", v: `$${SAMPLE.equity}`, tone: "text-bone" },
+                { k: "Free balance", v: `$${SAMPLE.free}`, tone: "text-bone" },
+                { k: "Unrealized PnL", v: `$${SAMPLE.upnl}`, tone: "text-gold" },
+                { k: "Open positions", v: String(SAMPLE.positions), tone: "text-bone" },
+              ].map((s, i) => (
+                <div
+                  key={s.k}
+                  className="border-dashed border-ash p-4"
+                  style={{ borderRightWidth: i < 3 ? 1 : 0 }}
+                >
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-sur-muted">
+                    {s.k}
+                  </div>
+                  <div className={`mt-1.5 text-xl tabular-nums ${s.tone}`}>
+                    {s.v}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* positions as case files */}
+            <div className="mt-8">
+              <div className="mb-3 text-[11px] uppercase tracking-[0.2em] text-gold">
+                // open positions
+              </div>
+              <div className="border border-dashed border-ash">
+                {SAMPLE.rows.map((r, i) => (
                   <div
-                    key={s.k}
-                    className="border-dashed p-4"
-                    style={{
-                      borderColor: ASH,
-                      borderRightWidth: i < 3 ? 1 : 0,
-                    }}
+                    key={r.mkt}
+                    className={`flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-[13px] ${
+                      i === 0 ? "" : "border-t border-dashed border-ash"
+                    }`}
                   >
-                    <div
-                      className="text-[10px] uppercase tracking-[0.18em]"
-                      style={{ color: "#8a8678" }}
+                    <span className="text-gold">{r.n}</span>
+                    <span className="w-24 text-bone">{r.mkt}</span>
+                    <span
+                      className={`text-[11px] uppercase tracking-widest ${
+                        r.long ? "text-gold" : "text-rust"
+                      }`}
                     >
-                      {s.k}
-                    </div>
-                    <div className="mt-1.5 text-xl tabular-nums" style={{ color: s.tone }}>
-                      {s.v}
-                    </div>
+                      {r.long ? "long" : "short"}
+                    </span>
+                    <Leader />
+                    <span className="tabular-nums text-sur-muted">{r.size}</span>
+                    <span className="tabular-nums text-sur-muted">@ ${r.entry}</span>
+                    <span className="tabular-nums text-bone">${r.margin}</span>
                   </div>
                 ))}
               </div>
+            </div>
 
-              {/* positions as case files */}
-              <div className="mt-8">
-                <div
-                  className="mb-3 text-[11px] uppercase tracking-[0.2em]"
-                  style={{ color: GOLD }}
-                >
-                  // open positions
-                </div>
-                <div className="border border-dashed" style={{ borderColor: ASH }}>
-                  {SAMPLE.rows.map((r, i) => (
-                    <div
-                      key={r.mkt}
-                      className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-[13px]"
-                      style={{
-                        borderTop: i === 0 ? "none" : `1px dashed ${ASH}`,
-                      }}
-                    >
-                      <span style={{ color: GOLD }}>{r.n}</span>
-                      <span className="w-24" style={{ color: BONE }}>
-                        {r.mkt}
-                      </span>
-                      <span
-                        className="text-[11px] uppercase tracking-widest"
-                        style={{ color: r.long ? GOLD : RUST }}
-                      >
-                        {r.long ? "long" : "short"}
-                      </span>
-                      <Leader />
-                      <span className="tabular-nums" style={{ color: "#8a8678" }}>
-                        {r.size}
-                      </span>
-                      <span className="tabular-nums" style={{ color: "#8a8678" }}>
-                        @ ${r.entry}
-                      </span>
-                      <span className="tabular-nums" style={{ color: BONE }}>
-                        ${r.margin}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+            {/* markets ledger */}
+            <div className="mt-8">
+              <div className="mb-3 text-[11px] uppercase tracking-[0.2em] text-gold">
+                // markets ledger
               </div>
-
-              {/* markets ledger */}
-              <div className="mt-8">
-                <div
-                  className="mb-3 text-[11px] uppercase tracking-[0.2em]"
-                  style={{ color: GOLD }}
-                >
-                  // markets ledger
-                </div>
-                <div className="border border-dashed" style={{ borderColor: ASH }}>
-                  <div
-                    className="grid grid-cols-4 px-4 py-2 text-[10px] uppercase tracking-[0.18em]"
-                    style={{ color: "#8a8678", borderBottom: `1px dashed ${ASH}` }}
-                  >
+              <div className="overflow-x-auto border border-dashed border-ash">
+                <div className="min-w-[420px]">
+                  <div className="grid grid-cols-4 border-b border-dashed border-ash px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-sur-muted">
                     <span>Market</span>
                     <span className="text-right">Mark</span>
                     <span className="text-right">OI Long</span>
@@ -290,17 +198,18 @@ export default function LabPage() {
                   {SAMPLE.markets.map((m, i) => (
                     <div
                       key={m.sym}
-                      className="grid grid-cols-4 px-4 py-2.5 text-[13px]"
-                      style={{ borderTop: i === 0 ? "none" : `1px dashed ${ASH}` }}
+                      className={`grid grid-cols-4 px-4 py-2.5 text-[13px] ${
+                        i === 0 ? "" : "border-t border-dashed border-ash"
+                      }`}
                     >
-                      <span style={{ color: BONE }}>{m.sym}</span>
-                      <span className="text-right tabular-nums" style={{ color: BONE }}>
+                      <span className="text-bone">{m.sym}</span>
+                      <span className="text-right tabular-nums text-bone">
                         ${m.mark}
                       </span>
-                      <span className="text-right tabular-nums" style={{ color: "#8a8678" }}>
+                      <span className="text-right tabular-nums text-sur-muted">
                         {m.oiL}
                       </span>
-                      <span className="text-right tabular-nums" style={{ color: "#8a8678" }}>
+                      <span className="text-right tabular-nums text-sur-muted">
                         {m.oiS}
                       </span>
                     </div>
@@ -308,15 +217,12 @@ export default function LabPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </DashedPanel>
 
           {/* footer */}
-          <div
-            className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-dashed pt-4 text-[10px] uppercase tracking-[0.2em]"
-            style={{ borderColor: ASH, color: "#6f6c61" }}
-          >
+          <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-ash pt-4 text-[10px] uppercase tracking-[0.2em] text-sur-muted/70">
             <span>SUR // Solana Devnet // dossier compiled {clock}</span>
-            <Link href="/" className="hover:underline" style={{ color: GOLD }}>
+            <Link href="/" className="text-gold hover:underline">
               ← back to /
             </Link>
           </div>

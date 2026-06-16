@@ -63,8 +63,8 @@ const SECTIONS = [
 
 export default function DocsPage() {
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-3xl mx-auto px-6 py-12">
+    <div className="h-full overflow-y-auto overflow-x-hidden">
+      <div className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6">
         <Link href="/" className="text-sur-accent text-xs hover:underline mb-6 inline-block">
           &larr; Back to Home
         </Link>
@@ -72,7 +72,7 @@ export default function DocsPage() {
         <h1 className="text-2xl font-bold mb-2">Documentation</h1>
         <p className="text-sm text-sur-muted mb-8">SUR Protocol on Solana — v0.3 devnet</p>
 
-        <div className="space-y-10 text-sm text-sur-text/80 leading-relaxed">
+        <div className="space-y-10 text-sm text-sur-text/80 leading-relaxed break-words">
           {SECTIONS.map((s) => (
             <section key={s.id}>
               <h2 className="text-lg font-semibold text-sur-text mb-3">{s.title}</h2>

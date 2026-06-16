@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
+
+import { GITHUB_URL } from "@/lib/links";
 
 interface Faq {
   q: string;
-  a: string;
+  a: ReactNode;
 }
 
 const FAQS: Faq[] = [
@@ -27,7 +29,21 @@ const FAQS: Faq[] = [
   },
   {
     q: "Where is the source code?",
-    a: "GitHub. See the project README for the monorepo layout — programs in /programs, web client in /clients/web, SDK in /clients/sdk.",
+    a: (
+      <>
+        On{" "}
+        <a
+          href={GITHUB_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sur-accent hover:underline"
+        >
+          GitHub
+        </a>
+        . See the project README for the monorepo layout — programs in
+        /programs, web client in /clients/web, SDK in /clients/sdk.
+      </>
+    ),
   },
 ];
 
@@ -35,8 +51,8 @@ export default function SupportPage() {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-3xl mx-auto px-6 py-12">
+    <div className="h-full overflow-y-auto overflow-x-hidden">
+      <div className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6">
         <Link href="/" className="text-sur-accent text-xs hover:underline mb-6 inline-block">
           &larr; Back to Home
         </Link>
@@ -73,7 +89,7 @@ export default function SupportPage() {
                 </svg>
               </button>
               {open === i && (
-                <div className="px-4 pb-4 text-sm text-sur-muted leading-relaxed border-t border-sur-border/50">
+                <div className="px-4 pb-4 text-sm text-sur-muted leading-relaxed border-t border-sur-border/50 break-words">
                   <div className="pt-3">{f.a}</div>
                 </div>
               )}

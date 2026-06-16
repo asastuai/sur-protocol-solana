@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 
 import { ToolCard } from "@/components/agents/ToolCard";
@@ -38,6 +38,18 @@ const DOCTRINE = [
 
 export default function AgentsPage() {
   const { publicKey } = useWallet();
+
+  // Tool list collapses on mobile. Default open (SSR + no-JS + desktop see the
+  // full list); after mount we collapse it on narrow viewports so the long
+  // schema list doesn't dominate the 390px screen. Desktop hides the toggle.
+  const [toolsOpen, setToolsOpen] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const sync = () => setToolsOpen(!mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   const markets = useMarkets();
   const vault = useVaultBalance(publicKey ?? undefined);
@@ -117,7 +129,7 @@ export default function AgentsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
+    <div className="mx-auto w-full max-w-6xl overflow-x-hidden px-4 py-10">
       <DossierHeader
         path="agents"
         title="Agents"
@@ -169,28 +181,52 @@ export default function AgentsPage() {
           title="Tool surface"
           bodyClassName="p-5 md:p-6"
         >
-          <div className="mb-4 flex items-baseline justify-between border-b border-dashed border-ash pb-3 text-[11px] uppercase tracking-[0.18em] text-sur-muted">
+          <div className="mb-4 hidden items-baseline justify-between border-b border-dashed border-ash pb-3 text-[11px] uppercase tracking-[0.18em] text-sur-muted lg:flex">
             <span className="text-gold">// issued tools</span>
             <span className="flex items-center gap-2">
               <Leader />
               <span className="tabular-nums">{MCP_TOOLS.length} tools across 3 programs</span>
             </span>
           </div>
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {MCP_TOOLS.map((tool) => (
-              <ToolCard
-                key={tool.name}
-                name={tool.name}
-                description={tool.description}
-                inputSchema={tool.input}
-                outputSchema={tool.output}
-                category={tool.category}
-                onTryIt={
-                  tool.category === "read" ? TRY_HANDLERS[tool.name] : undefined
-                }
-              />
-            ))}
-          </div>
+          {/* Collapsed by default on mobile to keep the long schema list from
+              dominating the small viewport; the matchMedia effect forces it
+              open at lg and up, where the summary toggle is also hidden. */}
+          <details
+            open={toolsOpen}
+            onToggle={(e) => setToolsOpen(e.currentTarget.open)}
+            className="group [&_summary::-webkit-details-marker]:hidden"
+          >
+            <summary className="mb-4 flex cursor-pointer list-none items-center justify-between border-b border-dashed border-ash pb-3 text-[11px] uppercase tracking-[0.18em] text-sur-muted lg:hidden">
+              <span className="text-gold">// issued tools</span>
+              <span className="flex items-center gap-2 tabular-nums">
+                {MCP_TOOLS.length} tools
+                <span
+                  aria-hidden
+                  className="text-gold transition-transform group-open:rotate-180"
+                >
+                  ▾
+                </span>
+              </span>
+            </summary>
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {MCP_TOOLS.map((tool) => (
+                <div key={tool.name} className="min-w-0">
+                  <ToolCard
+                    name={tool.name}
+                    description={tool.description}
+                    inputSchema={tool.input}
+                    outputSchema={tool.output}
+                    category={tool.category}
+                    onTryIt={
+                      tool.category === "read"
+                        ? TRY_HANDLERS[tool.name]
+                        : undefined
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          </details>
         </DashedPanel>
       </section>
 
@@ -199,7 +235,7 @@ export default function AgentsPage() {
         <DashedPanel title="Field manual">
           <SectionLabel>deploy your operative</SectionLabel>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div>
+            <div className="min-w-0">
               <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-sur-muted">
                 TypeScript — @asastuai/sur-sdk
               </div>
@@ -223,7 +259,7 @@ const { signature, intentId } = await sur.postIntent({
 });`}
               </pre>
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-sur-muted">
                 Python — sur-sdk
               </div>

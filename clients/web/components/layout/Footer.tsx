@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Github, FileText, MessageCircle, Twitter, ExternalLink } from "lucide-react";
+import { Github, FileText, ExternalLink } from "lucide-react";
 
-const GITHUB_URL = "https://github.com/asastuai/sur-protocol-solana";
+import { GITHUB_URL } from "@/lib/links";
 
 export function Footer() {
   return (
@@ -29,14 +29,6 @@ export function Footer() {
             <FileText size={12} aria-hidden />
             Docs
           </Link>
-          <span className="inline-flex cursor-not-allowed items-center gap-1 opacity-50" title="Coming soon">
-            <MessageCircle size={12} aria-hidden />
-            Discord
-          </span>
-          <span className="inline-flex cursor-not-allowed items-center gap-1 opacity-50" title="Coming soon">
-            <Twitter size={12} aria-hidden />
-            Twitter
-          </span>
         </nav>
       </div>
     </footer>

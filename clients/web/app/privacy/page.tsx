@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 
+import { GITHUB_URL } from "@/lib/links";
+
 export default function PrivacyPage() {
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-3xl mx-auto px-6 py-12">
+    <div className="h-full overflow-y-auto overflow-x-hidden">
+      <div className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6">
         <Link href="/" className="text-sur-accent text-xs hover:underline mb-6 inline-block">
           &larr; Back to Home
         </Link>
@@ -13,7 +15,7 @@ export default function PrivacyPage() {
         <h1 className="text-2xl font-bold mb-2">Privacy Policy</h1>
         <p className="text-sm text-sur-muted mb-8">Last updated: 2026-05-13</p>
 
-        <div className="space-y-6 text-sm text-sur-text/80 leading-relaxed">
+        <div className="space-y-6 text-sm text-sur-text/80 leading-relaxed break-words">
           <Section title="1. Introduction">
             SUR Protocol operates a decentralized perpetual futures trading
             platform on Solana. This Privacy Policy explains how we collect,
@@ -57,7 +59,16 @@ export default function PrivacyPage() {
 
           <Section title="5. Contact">
             <p>
-              Questions about this policy? Open an issue on the GitHub repo.
+              Questions about this policy?{" "}
+              <a
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sur-accent hover:underline"
+              >
+                Open an issue on the GitHub repo
+              </a>
+              .
             </p>
           </Section>
         </div>

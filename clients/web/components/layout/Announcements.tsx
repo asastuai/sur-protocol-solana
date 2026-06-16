@@ -25,6 +25,7 @@ const ANNOUNCEMENTS: Announcement[] = [
 ];
 
 const STORAGE_KEY = "sur_dismissed_announcements";
+const PROMO_ID = "solana-devnet-2026";
 
 function getDismissed(): Set<string> {
   try {
@@ -48,7 +49,16 @@ export function Announcements() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setDismissed(getDismissed());
+    const stored = getDismissed();
+    // The promo is a one-time notice: mark it seen as soon as it renders so
+    // returning visitors never get it floating over content again. The user
+    // can still dismiss it manually this session via the close button.
+    if (!stored.has(PROMO_ID)) {
+      const next = new Set(stored);
+      next.add(PROMO_ID);
+      saveDismissed(next);
+    }
+    setDismissed(stored);
     setMounted(true);
   }, []);
 
@@ -70,24 +80,42 @@ export function Announcements() {
     info: { bg: "bg-sur-accent/10", border: "border-sur-accent/20", text: "text-sur-accent", icon: "ℹ" },
     warning: { bg: "bg-sur-yellow/10", border: "border-sur-yellow/20", text: "text-sur-yellow", icon: "⚠" },
     success: { bg: "bg-sur-green/10", border: "border-sur-green/20", text: "text-sur-green", icon: "✓" },
-    promo: { bg: "bg-purple-500/10", border: "border-purple-500/20", text: "text-purple-400", icon: "★" },
+    // promo: theme-var driven (sol-purple) so it stays on-brand and light-mode safe
+    promo: { bg: "", border: "", text: "", icon: "★" },
   } as const;
 
   const c = colors[current.type];
+  const isPromo = current.type === "promo";
+  const promoStyle = isPromo
+    ? {
+        backgroundColor: "color-mix(in srgb, var(--sol-purple) 10%, transparent)",
+        borderColor: "color-mix(in srgb, var(--sol-purple) 24%, transparent)",
+        color: "var(--sol-purple)",
+      }
+    : undefined;
   const remaining = visible.length - 1;
 
   return (
     <div className="fixed bottom-4 right-4 z-50 max-w-sm animate-slide-up">
-      <div className={`${c.bg} ${c.border} border rounded-lg shadow-2xl backdrop-blur-sm`}>
+      <div
+        className={`${c.bg} ${c.border} border rounded-lg shadow-2xl backdrop-blur-sm`}
+        style={isPromo ? { backgroundColor: promoStyle!.backgroundColor, borderColor: promoStyle!.borderColor } : undefined}
+      >
         <div className="flex items-start gap-3 px-4 py-3">
           <span className="text-sm flex-shrink-0 mt-0.5">{c.icon}</span>
 
           <div className="flex-1 min-w-0">
-            <p className={`text-xs ${c.text} leading-relaxed`}>{current.text}</p>
+            <p
+              className={`text-xs ${c.text} leading-relaxed`}
+              style={isPromo ? { color: promoStyle!.color } : undefined}
+            >
+              {current.text}
+            </p>
             {current.link && (
               <a
                 href={current.link.href}
                 className={`text-[10px] ${c.text} font-semibold hover:underline mt-1 inline-block`}
+                style={isPromo ? { color: promoStyle!.color } : undefined}
               >
                 {current.link.label} &rarr;
               </a>

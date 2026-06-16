@@ -53,26 +53,31 @@ function ExpiryTimer({ expiresAt }: { expiresAt: BN }) {
 
 function IntentRow({
   intent,
-  walletScore,
   walletConnected,
   isOwn,
   onAccept,
 }: {
   intent: OpenIntent;
-  walletScore: number;
   walletConnected: boolean;
   isOwn: boolean;
   onAccept: (intent: OpenIntent) => Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
   const symbol = symbolFromMarketId(intent.marketId) || "—";
-  // The on-chain Intent doesn't carry a min-counterparty-reputation field
-  // (that ships in v0.4 — see programs/a2a_darkpool/MAPPING.md). For now
-  // we display the agent's own snapshot reputation cap as a placeholder.
-  const minRep = 0;
 
-  const repOk = !walletConnected || walletScore >= minRep;
-  const canAccept = walletConnected && !isOwn && repOk;
+  // Re-evaluate expiry every second so the Accept button disables itself the
+  // moment the intent lapses (the on-chain accept tx would otherwise revert).
+  const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
+  useEffect(() => {
+    const t = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const isExpired = intent.expiresAt.toNumber() <= now;
+
+  // The on-chain Intent struct does NOT carry a min-counterparty-reputation
+  // field yet (ships in program v0.4 — see programs/a2a_darkpool/MAPPING.md).
+  // We surface a placeholder readout but enforce nothing here.
+  const canAccept = walletConnected && !isOwn && !isExpired;
 
   async function handleAccept() {
     if (!canAccept || busy) return;
@@ -106,11 +111,14 @@ function IntentRow({
         ${formatBN(intent.maxPrice, PRICE_DECIMALS, 2)}
       </td>
       <td className="px-3 py-2.5 text-[12px] text-sur-muted">
-        <Clock size={11} className="-mt-px mr-1 inline" />
+        <Clock size={11} className="-mt-px mr-1 inline" aria-hidden="true" />
         <ExpiryTimer expiresAt={intent.expiresAt} />
       </td>
-      <td className="px-3 py-2.5 text-[12px] tabular-nums text-sur-muted">
-        {minRep}
+      <td
+        className="px-3 py-2.5 text-[12px] tabular-nums text-sur-muted/60"
+        title="Min counterparty reputation is not enforced on-chain yet (ships in program v0.4)."
+      >
+        n/a
       </td>
       <td className="px-3 py-2.5 text-right">
         {isOwn ? (
@@ -121,9 +129,9 @@ function IntentRow({
           <span className="text-[10px] uppercase tracking-[0.18em] text-sur-muted">
             connect wallet
           </span>
-        ) : !repOk ? (
+        ) : isExpired ? (
           <span className="text-[10px] uppercase tracking-[0.18em] text-rust">
-            low reputation
+            expired
           </span>
         ) : (
           <button
@@ -231,11 +239,6 @@ export default function DarkpoolPage() {
     }
   }
 
-  // Note: the on-chain Intent struct doesn't expose minRep yet (placeholder
-  // in the row). We still surface the input so the UX is forward-compatible
-  // with v0.4. Suppress unused warning by reading the value.
-  void minRepStr;
-
   return (
     <div className="mx-auto max-w-5xl px-5 py-8 font-mono md:px-8">
       <DossierHeader
@@ -270,7 +273,7 @@ export default function DarkpoolPage() {
               <SectionLabel>order ticket</SectionLabel>
               {connected && (
                 <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.18em] text-sur-muted">
-                  <Shield size={11} />
+                  <Shield size={11} aria-hidden="true" />
                   rep {reputation.isNew ? "—" : reputation.score}
                 </span>
               )}
@@ -347,7 +350,7 @@ export default function DarkpoolPage() {
 
               <div>
                 <label className="mb-1 block text-[10px] uppercase tracking-[0.18em] text-sur-muted">
-                  Max price (USD)
+                  Price (USD)
                 </label>
                 <input
                   type="number"
@@ -357,22 +360,31 @@ export default function DarkpoolPage() {
                   placeholder="50000"
                   className="w-full rounded-none border border-ash bg-smoke px-2 py-1.5 text-[12px] text-bone outline-none focus:border-gold disabled:opacity-50"
                 />
+                <span className="mt-1 block text-[9px] text-sur-muted/70">
+                  single-price intent — min and max price are posted equal
+                </span>
               </div>
 
               <div>
-                <label className="mb-1 block text-[10px] uppercase tracking-[0.18em] text-sur-muted">
-                  Min counterparty reputation (0-1000)
-                </label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="block text-[10px] uppercase tracking-[0.18em] text-sur-muted">
+                    Min counterparty reputation
+                  </label>
+                  <span className="inline-flex items-center rounded-none border border-ash px-1.5 py-0.5 text-[8px] uppercase tracking-[0.18em] text-sur-muted/70">
+                    v0.4
+                  </span>
+                </div>
                 <input
                   type="number"
                   value={minRepStr}
                   onChange={(e) => setMinRepStr(e.target.value)}
-                  disabled={!connected}
-                  placeholder="500"
-                  className="w-full rounded-none border border-ash bg-smoke px-2 py-1.5 text-[12px] text-bone outline-none focus:border-gold disabled:opacity-50"
+                  disabled
+                  placeholder="—"
+                  aria-disabled="true"
+                  className="w-full cursor-not-allowed rounded-none border border-dashed border-ash bg-smoke px-2 py-1.5 text-[12px] text-bone opacity-50 outline-none"
                 />
                 <span className="mt-1 block text-[9px] text-sur-muted/70">
-                  ships in program v0.4 — UI accepts it now
+                  not yet enforced on-chain — ships in program v0.4
                 </span>
               </div>
 
@@ -454,7 +466,6 @@ export default function DarkpoolPage() {
                       <IntentRow
                         key={i.pda.toBase58()}
                         intent={i}
-                        walletScore={reputation.isNew ? 500 : reputation.score}
                         walletConnected={connected}
                         isOwn={publicKey?.equals(i.agent) ?? false}
                         onAccept={handleAccept}

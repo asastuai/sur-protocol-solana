@@ -121,6 +121,20 @@ export function OrderBook({ orderBook, recentTrades, currentPrice, priceChange24
           ))}
         </div>
         <div className="flex items-center gap-1">
+          {viewMode !== "trades" && (
+            <div className="mr-1 flex items-center gap-0.5 border-r border-dashed border-ash pr-1.5">
+              {(["both", "bids", "asks"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setBookMode(m)}
+                  aria-label={`Show ${m}`}
+                  className={tabBtn(bookMode === m)}
+                >
+                  {m === "both" ? "⇅" : m === "bids" ? "Bids" : "Asks"}
+                </button>
+              ))}
+            </div>
+          )}
           {[0, 1, 2].map((p) => (
             <button
               key={p}

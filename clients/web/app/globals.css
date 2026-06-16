@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -15,7 +15,8 @@
   --sur-accent: #c9a96e;
   --sur-green: #0ECB81;
   --sur-red: #F6465D;
-  --sur-yellow: #c9a96e;
+  /* warning/amber — distinct from --gold so "soon"/warning badges read apart from brand */
+  --sur-yellow: #f5b945;
   --ink: #0a0a0a;
   --smoke: #1a1a1a;
   --ash: #2a2a2a;
@@ -40,7 +41,8 @@
   --sur-accent: #8a6d3b;
   --sur-green: #1a7f37;
   --sur-red: #b7410e;
-  --sur-yellow: #8a6d3b;
+  /* warning/amber — darker amber that stays legible on the paper background */
+  --sur-yellow: #b5791a;
   --ink: #1a1a1a;
   --smoke: #efe9da;
   --ash: #d8d2c2;

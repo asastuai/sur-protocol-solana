@@ -31,8 +31,8 @@ export function AccountPanel() {
     : "text-sur-red";
 
   return (
-    <div className="border-t border-sur-border">
-      <div className="px-3 py-2 border-b border-sur-border flex items-center justify-between">
+    <div>
+      <div className="px-3 py-2 border-b border-dashed border-ash flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-sur-muted">
             Account

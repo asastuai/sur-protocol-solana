@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useMarketState } from "@/hooks/data/use-market-state";
 import { useBinanceStats } from "@/hooks/data/use-binance-stats";
 import { findMarket } from "@/lib/markets";
-import { formatBN, PRICE_DECIMALS, SIZE_DECIMALS } from "@/lib/formatters";
+import { formatBN, PRICE_DECIMALS } from "@/lib/formatters";
 import { MarketSelector } from "./MarketSelector";
 
 interface Props {
@@ -60,8 +60,6 @@ export function MarketHeader({ symbol, onSelect }: Props) {
   const markPrice = stats.price > 0 ? `$${fmtUsd(stats.price)}` : "—";
   const oracle =
     state && !state.indexPrice.isZero() ? `$${formatBN(state.indexPrice, PRICE_DECIMALS, 2)}` : "—";
-  const oiLong = state ? formatBN(state.openInterestLong, SIZE_DECIMALS, 2) : "—";
-  const oiShort = state ? formatBN(state.openInterestShort, SIZE_DECIMALS, 2) : "—";
   const dotColor = state ? "var(--gold)" : loading ? "#F0B90B" : "#F6465D";
   const dotLabel = state ? "On-chain" : loading ? "Loading" : "Devnet uninit";
 
@@ -96,7 +94,7 @@ export function MarketHeader({ symbol, onSelect }: Props) {
 
         <div className="h-7 w-px shrink-0 bg-ash" />
 
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-5 sm:gap-6">
           <Cell label="Mark" value={markPrice} />
           <Cell label="Oracle" value={oracle} />
           <Cell
@@ -105,9 +103,6 @@ export function MarketHeader({ symbol, onSelect }: Props) {
             className={up ? "text-sur-green" : "text-sur-red"}
           />
           <Cell label="24h Vol" value={stats.volume > 0 ? fmtCompact(stats.volume) : "—"} />
-          <Cell label="OI Long" value={oiLong} className="text-sur-muted" />
-          <Cell label="OI Short" value={oiShort} className="text-sur-muted" />
-          <Cell label="Max Lev" value={`${market?.maxLeverage ?? "—"}x`} className="text-gold" />
         </div>
       </div>
 

@@ -4,8 +4,8 @@ import Link from "next/link";
 
 export default function TermsPage() {
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-3xl mx-auto px-6 py-12">
+    <div className="h-full overflow-y-auto overflow-x-hidden">
+      <div className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6">
         <Link href="/" className="text-sur-accent text-xs hover:underline mb-6 inline-block">
           &larr; Back to Home
         </Link>
@@ -13,7 +13,7 @@ export default function TermsPage() {
         <h1 className="text-2xl font-bold mb-2">Terms of Service</h1>
         <p className="text-sm text-sur-muted mb-8">Last updated: 2026-05-13</p>
 
-        <div className="space-y-6 text-sm text-sur-text/80 leading-relaxed">
+        <div className="space-y-6 text-sm text-sur-text/80 leading-relaxed break-words">
           <Section title="1. Acceptance of Terms">
             By accessing or using SUR Protocol on Solana devnet (the
             &ldquo;Platform&rdquo;), you agree to be bound by these Terms of

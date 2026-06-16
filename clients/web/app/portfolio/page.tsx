@@ -39,9 +39,14 @@ export default function PortfolioPage() {
     [connected, publicKey],
   );
 
-  const { balance, loading: balLoading } = useVaultBalance(trader);
-  const { positions, loading: posLoading } = useOpenPositions(trader);
-  const { details, loading: viewLoading } = useEngineView(trader);
+  const { balance, loading: balLoading, error: balError } =
+    useVaultBalance(trader);
+  const { positions, loading: posLoading, error: posError } =
+    useOpenPositions(trader);
+  const { details, loading: viewLoading, error: viewError } =
+    useEngineView(trader);
+
+  const anyError = balError ?? posError ?? viewError;
 
   const [timeRange, setTimeRange] = useState<TimeRange>("all");
   const [tab, setTab] = useState<Tab>("positions");
@@ -72,13 +77,15 @@ export default function PortfolioPage() {
   const equityUi = details
     ? `$${formatBN(details.totalEquity, USDC_DECIMALS, 2)}`
     : "$0.00";
-  const upnlUi = details
-    ? `${details.totalUnrealizedPnl.isNeg() ? "-" : "+"}$${formatBN(
-        details.totalUnrealizedPnl.abs(),
-        USDC_DECIMALS,
-        2,
-      )}`
-    : "$0.00";
+  const upnlUi = !details
+    ? "$0.00"
+    : details.totalUnrealizedPnl.isZero()
+      ? `$${formatBN(details.totalUnrealizedPnl, USDC_DECIMALS, 2)}`
+      : `${details.totalUnrealizedPnl.isNeg() ? "-" : "+"}$${formatBN(
+          details.totalUnrealizedPnl.abs(),
+          USDC_DECIMALS,
+          2,
+        )}`;
   const upnlColor = details && !details.totalUnrealizedPnl.isNeg()
     ? "text-gold"
     : "text-rust";
@@ -97,20 +104,30 @@ export default function PortfolioPage() {
           }
           stamps={<Stamp>Devnet</Stamp>}
           right={
-            <div className="flex items-center gap-1 border border-dashed border-ash p-0.5">
-              {(["24h", "7d", "30d", "all"] as TimeRange[]).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setTimeRange(r)}
-                  className={`px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] transition-colors ${
-                    timeRange === r
-                      ? "bg-smoke text-gold"
-                      : "text-sur-muted hover:text-bone"
-                  }`}
-                >
-                  {r === "all" ? "All" : r.toUpperCase()}
-                </button>
-              ))}
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-[9px] uppercase tracking-[0.18em] text-sur-muted">
+                range · soon
+              </span>
+              <div
+                className="flex items-center gap-1 border border-dashed border-ash p-0.5 opacity-50"
+                title="Time-range filtering arrives once trade history is indexed."
+              >
+                {(["24h", "7d", "30d", "all"] as TimeRange[]).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setTimeRange(r)}
+                    disabled
+                    aria-disabled="true"
+                    className={`cursor-not-allowed px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] transition-colors ${
+                      timeRange === r
+                        ? "bg-smoke text-gold"
+                        : "text-sur-muted"
+                    }`}
+                  >
+                    {r === "all" ? "All" : r.toUpperCase()}
+                  </button>
+                ))}
+              </div>
             </div>
           }
         />
@@ -237,13 +254,19 @@ export default function PortfolioPage() {
           </div>
         </DashedPanel>
 
+        {anyError && (
+          <p className="mt-6 text-xs text-rust">
+            RPC error: {anyError.message}
+          </p>
+        )}
+
         {/* footer */}
         <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-ash pt-4 text-[10px] uppercase tracking-[0.2em] text-sur-muted">
           <span>SUR // Solana Devnet // portfolio dossier</span>
           <span className="flex items-center gap-2">
             range
             <Leader />
-            <span className="text-gold">{timeRange === "all" ? "all" : timeRange}</span>
+            <span className="text-sur-muted">not indexed yet</span>
           </span>
         </div>
       </div>

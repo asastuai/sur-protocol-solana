@@ -3,13 +3,17 @@
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { BN } from "@coral-xyz/anchor";
 
 import { useMarkets } from "@/hooks/data/use-markets";
 import { useVaultBalance } from "@/hooks/data/use-vault-balance";
 import { useOpenPositions } from "@/hooks/data/use-open-positions";
 import { useEngineView } from "@/hooks/data/use-engine-view";
-import { USDC_DECIMALS } from "@/lib/devnet-constants";
+import {
+  formatBN,
+  USDC_DECIMALS,
+  PRICE_DECIMALS,
+  SIZE_DECIMALS,
+} from "@/lib/formatters";
 import { cn } from "@/lib/cn";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import {
@@ -24,23 +28,6 @@ const WalletMultiButton = dynamic(
     (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
   { ssr: false },
 );
-
-// Price has 6 decimals. We format to 2 fractional digits for display.
-const PRICE_DECIMALS = 6;
-// Size has 8 decimals on-chain (SIZE_PRECISION = 1e8).
-const SIZE_DECIMALS = 8;
-
-function formatBN(n: BN | undefined, decimals: number, fractionDigits = 2): string {
-  if (!n) return "—";
-  const negative = n.isNeg();
-  const abs = negative ? n.neg() : n;
-  const divisor = new BN(10).pow(new BN(decimals));
-  const whole = abs.div(divisor).toString();
-  const frac = abs.mod(divisor).toString().padStart(decimals, "0");
-  const truncFrac = frac.slice(0, fractionDigits).padEnd(fractionDigits, "0");
-  const out = fractionDigits > 0 ? `${whole}.${truncFrac}` : whole;
-  return negative ? `-${out}` : out;
-}
 
 function MarketOverview() {
   const { markets, loading, error } = useMarkets();
@@ -126,7 +113,8 @@ function MyAccount() {
     useVaultBalance(trader);
   const { positions, loading: posLoading, error: posError } =
     useOpenPositions(trader);
-  const { details, loading: viewLoading } = useEngineView(trader);
+  const { details, loading: viewLoading, error: viewError } =
+    useEngineView(trader);
 
   if (!trader) {
     return (
@@ -136,7 +124,7 @@ function MyAccount() {
     );
   }
 
-  const anyError = balError ?? posError;
+  const anyError = balError ?? posError ?? viewError;
 
   return (
     <div className="space-y-6">
@@ -286,7 +274,7 @@ function Stat({
 
 export default function DashboardPage() {
   return (
-    <main className="min-h-screen p-6 md:p-10">
+    <div className="min-h-screen p-6 md:p-10">
       <DossierHeader
         path="dashboard"
         title="Dashboard"
@@ -313,6 +301,6 @@ export default function DashboardPage() {
           <MyAccount />
         </section>
       </div>
-    </main>
+    </div>
   );
 }

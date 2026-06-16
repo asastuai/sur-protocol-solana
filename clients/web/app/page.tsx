@@ -29,7 +29,7 @@ export default function LandingPage() {
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(68% 52% at 50% 42%, rgba(8,10,14,0.62), transparent 72%), radial-gradient(120% 80% at 50% 8%, rgba(153,69,255,0.14), transparent 55%), radial-gradient(90% 60% at 70% 30%, rgba(20,241,149,0.07), transparent 60%), linear-gradient(to bottom, transparent 60%, var(--sur-bg) 97%)",
+              "radial-gradient(68% 52% at 50% 42%, rgba(8,10,14,0.62), transparent 72%), radial-gradient(120% 80% at 50% 8%, color-mix(in srgb, var(--sol-purple) 14%, transparent), transparent 55%), radial-gradient(90% 60% at 70% 30%, color-mix(in srgb, var(--sol-green) 7%, transparent), transparent 60%), linear-gradient(to bottom, transparent 60%, var(--sur-bg) 97%)",
           }}
         />
 
@@ -40,13 +40,15 @@ export default function LandingPage() {
             Solana Devnet · agent-native perps
           </div>
 
-          <h1 className="font-display text-5xl font-extrabold leading-[1.04] tracking-tight md:text-7xl">
+          <h1 className="font-display text-5xl font-extrabold leading-[1.12] tracking-tight md:text-7xl md:leading-[1.08]">
             Perpetual futures.
             <br />
-            <span className="text-sol-gradient">Agent-native. On Solana.</span>
+            <span className="text-sol-gradient inline-block pb-[0.12em] leading-[1.18]">
+              Agent-native. On Solana.
+            </span>
           </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl text-[15px] leading-relaxed text-[#c4a7f5] md:text-[16px]">
+          <p className="mx-auto mt-6 max-w-2xl text-[15px] leading-relaxed text-sur-muted md:text-[16px]">
             Eleven Anchor programs live on devnet — perp engine, intent-based dark
             pool, persistent agent reputation and MCP-native settlement.
             Self-custodial, on-chain, built for autonomous traders.
@@ -55,9 +57,21 @@ export default function LandingPage() {
           <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/trade"
-              className="rounded-lg bg-sol-gradient px-6 py-3 text-[14px] font-bold text-[#0a0e12] shadow-[0_0_28px_rgba(20,241,149,0.22)] transition hover:brightness-110"
+              className="rounded-lg bg-sol-gradient px-6 py-3 text-[14px] font-bold text-ink shadow-[0_0_28px_rgba(20,241,149,0.22)] transition hover:brightness-110"
             >
               Open Trade
+            </Link>
+            <Link
+              href="/agents"
+              className="rounded-lg border border-sur-border bg-sur-surface/70 px-6 py-3 text-[14px] font-semibold text-sur-text backdrop-blur-sm transition hover:border-sol-purple/50 hover:bg-white/[0.04]"
+            >
+              Agents
+            </Link>
+            <Link
+              href="/darkpool"
+              className="rounded-lg border border-sur-border bg-sur-surface/70 px-6 py-3 text-[14px] font-semibold text-sur-text backdrop-blur-sm transition hover:border-sol-purple/50 hover:bg-white/[0.04]"
+            >
+              Dark Pool
             </Link>
             <Link
               href="/dashboard"
@@ -81,7 +95,7 @@ export default function LandingPage() {
         <div className="relative z-10 flex justify-center pb-7">
           <span className="flex flex-col items-center gap-1.5 text-[11px] uppercase tracking-widest text-sur-muted">
             Scroll
-            <svg className="h-4 w-4 animate-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <svg className="h-4 w-4 animate-bounce motion-reduce:animate-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M6 9l6 6 6-6" />
             </svg>
           </span>
@@ -108,7 +122,7 @@ export default function LandingPage() {
             />
             <Feature
               title="Self-custodial"
-              body="Phantom, Solflare and Backpack via the Solana wallet-adapter. Your keys, your funds — read and write paths wired end-to-end."
+              body="Phantom, Solflare and Backpack via the Solana wallet-adapter. Your keys, your funds — on-chain reads are live; write paths unlock at Phase 9 init."
             />
           </div>
         </div>
@@ -120,14 +134,15 @@ export default function LandingPage() {
           <h3 className="font-display text-lg font-bold text-sur-text">Devnet status</h3>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-sur-muted">
             UI ported from the EVM reference frontend and wired to Solana on-chain
-            reads and write paths. Charts and dark-pool / agent panels are landing
-            next. Write operations require Phase 9 program init.
+            reads. Charts and dark-pool / agent panels are landing next. Write
+            operations (deposits, orders) are gated until Phase 9 program init
+            completes — trading is not live yet.
           </p>
           <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
             <StatusItem label="Programs" value="11/11 deployed" tone="ok" />
             <StatusItem label="Read paths" value="wired" tone="ok" />
-            <StatusItem label="Write paths" value="wired" tone="ok" />
-            <StatusItem label="Init" value="Phase 9" tone="warn" />
+            <StatusItem label="Write paths" value="needs init" tone="warn" />
+            <StatusItem label="Init" value="Phase 9 pending" tone="warn" />
           </div>
         </div>
       </section>

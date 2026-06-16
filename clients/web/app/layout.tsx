@@ -8,6 +8,7 @@ import { DevnetBanner } from "@/components/layout/DevnetBanner";
 import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://sur.vercel.app"),
   title: {
     default: "SUR Protocol — Solana devnet",
     template: "%s — SUR Protocol",
@@ -19,9 +20,6 @@ export const metadata: Metadata = {
     description:
       "Perpetual futures DEX on Solana devnet. Agent-native. Eleven Anchor programs.",
     type: "website",
-  },
-  icons: {
-    icon: "/favicon.ico",
   },
 };
 

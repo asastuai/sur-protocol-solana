@@ -61,6 +61,10 @@ export function useOpenIntents(): OpenIntentsResult {
   const query = useQuery({
     queryKey: ["a2a-open-intents"],
     staleTime: 5_000,
+    // Poll so newly posted intents from other agents appear and expired ones
+    // drop out of the list without requiring a manual reload. The queryFn
+    // already filters out intents whose expires_at has passed.
+    refetchInterval: 5_000,
     queryFn: async (): Promise<OpenIntent[]> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const all = (await (program.account as any).intent.all()) as Array<{

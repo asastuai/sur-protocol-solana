@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BN } from "@coral-xyz/anchor";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { toast } from "sonner";
 import { TrendingUp, TrendingDown } from "lucide-react";
@@ -11,10 +10,13 @@ import { useMarkets } from "@/hooks/data/use-markets";
 import { useClosePosition } from "@/hooks/tx/use-close-position";
 import {
   formatBN,
+  bnToNumber,
+  fmtUsdSigned,
   PRICE_DECIMALS,
   SIZE_DECIMALS,
   USDC_DECIMALS,
 } from "@/lib/formatters";
+import { cn } from "@/lib/cn";
 import { getExplorerUrl } from "@/lib/explorer";
 import { formatError } from "@/lib/format-error";
 import { SkeletonTable } from "@/components/ui/Skeleton";
@@ -48,11 +50,17 @@ export function PositionsPanel() {
     symbol: string,
   ) {
     if (closing) return;
-    setClosing(pdaBase58);
     const onChain = marketsBySymbol.get(symbol);
-    // Fallback price if the on-chain market hasn't loaded yet — use a tiny
-    // non-zero price so the call still goes through; the engine will reject.
-    const fillPrice = onChain?.markPrice ?? new BN(1);
+    const fillPrice = onChain?.markPrice;
+    // Don't send a sentinel price — without a real on-chain mark there is no
+    // honest fill price, so the close button is gated (see disabled state).
+    if (!fillPrice || fillPrice.isZero()) {
+      toast.warning("No on-chain mark price yet", {
+        description: "Close is unavailable until this market has an on-chain mark.",
+      });
+      return;
+    }
+    setClosing(pdaBase58);
     try {
       const sig = await closePosition({ marketId, fillPrice });
       toast.success("Close confirmed", {
@@ -82,7 +90,7 @@ export function PositionsPanel() {
   if (loading) {
     return (
       <div aria-label="Loading positions">
-        <SkeletonTable rows={2} cols={6} />
+        <SkeletonTable rows={2} cols={8} />
       </div>
     );
   }
@@ -100,7 +108,7 @@ export function PositionsPanel() {
       <table className="w-full text-[11px]">
         <thead>
           <tr className="text-[10px] text-sur-muted uppercase tracking-wider">
-            {["Market", "Side", "Size", "Entry", "Margin", ""].map((h, i) => (
+            {["Market", "Side", "Size", "Entry", "Mark", "uPnL", "Margin", ""].map((h, i) => (
               <th
                 key={h + i}
                 className={`${i < 2 ? "text-left" : "text-right"} px-3 py-2 font-medium`}
@@ -114,6 +122,14 @@ export function PositionsPanel() {
           {positions.map((p) => {
             const symbol = symbolFromMarketIdBytes(p.marketId);
             const pda = p.pda.toBase58();
+            const onChain = marketsBySymbol.get(symbol);
+            const markBn = onChain?.markPrice;
+            const hasMark = !!markBn && !markBn.isZero();
+            const markNum = hasMark ? bnToNumber(markBn, PRICE_DECIMALS) : 0;
+            const entryNum = bnToNumber(p.entryPrice, PRICE_DECIMALS);
+            const sizeNum = bnToNumber(p.size.abs(), SIZE_DECIMALS);
+            const dir = p.isLong ? 1 : -1;
+            const uPnl = hasMark ? (markNum - entryNum) * sizeNum * dir : null;
             return (
               <tr
                 key={pda}
@@ -142,14 +158,26 @@ export function PositionsPanel() {
                 <td className="px-3 py-2 text-right font-mono tabular-nums">
                   ${formatBN(p.entryPrice, PRICE_DECIMALS, 2)}
                 </td>
+                <td className="px-3 py-2 text-right font-mono tabular-nums text-bone/90">
+                  {hasMark ? `$${markNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+                </td>
+                <td
+                  className={cn(
+                    "px-3 py-2 text-right font-mono tabular-nums",
+                    uPnl === null ? "text-sur-muted" : uPnl >= 0 ? "text-sur-green" : "text-sur-red",
+                  )}
+                >
+                  {uPnl === null ? "—" : fmtUsdSigned(uPnl)}
+                </td>
                 <td className="px-3 py-2 text-right font-mono tabular-nums">
                   ${formatBN(p.margin, USDC_DECIMALS, 2)}
                 </td>
                 <td className="px-3 py-2 text-right">
                   <button
                     onClick={() => handleClose(pda, p.marketId, symbol)}
-                    disabled={closing !== null}
-                    className="px-2 py-1 text-[10px] font-semibold rounded bg-sur-red/15 text-sur-red border border-sur-red/30 hover:bg-sur-red/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={closing !== null || !hasMark}
+                    title={!hasMark ? "No on-chain mark price yet" : undefined}
+                    className="px-2 py-1 text-[10px] font-semibold rounded-none bg-sur-red/15 text-sur-red border border-sur-red/30 hover:bg-sur-red/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {closing === pda ? "…" : "Close"}
                   </button>

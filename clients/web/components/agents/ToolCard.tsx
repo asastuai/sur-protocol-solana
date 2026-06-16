@@ -25,7 +25,7 @@ function SchemaBlock({
 }) {
   if (fields.length === 0) {
     return (
-      <div>
+      <div className="min-w-0">
         <div className="text-[10px] uppercase tracking-wider text-sur-muted mb-1">
           {label}
         </div>
@@ -34,16 +34,16 @@ function SchemaBlock({
     );
   }
   return (
-    <div>
+    <div className="min-w-0">
       <div className="text-[10px] uppercase tracking-wider text-sur-muted mb-1">
         {label}
       </div>
-      <pre className="text-[11px] leading-relaxed font-mono text-sur-text bg-sur-bg/60 border border-sur-border rounded px-2 py-1.5 overflow-x-auto">
+      <pre className="text-[11px] leading-relaxed font-mono text-bone bg-ink border border-dashed border-ash px-2 py-1.5 overflow-x-auto">
         {`{\n`}
         {fields.map((f, i) => (
           <span key={f.name}>
             {`  `}
-            <span className="text-sur-accent">{f.name}</span>
+            <span className="text-gold">{f.name}</span>
             {`: `}
             <span className="text-sur-muted">{f.type}</span>
             {i < fields.length - 1 ? "," : ""}
@@ -59,18 +59,20 @@ function SchemaBlock({
   );
 }
 
+// Match <Stamp> tones: gold (default) / rust / muted — square, dashed-free
+// outline tags so the badges read as the same family as the rest of the kit.
 const CATEGORY_BADGE: Record<ToolCategory, { label: string; cls: string }> = {
   read: {
     label: "read",
-    cls: "bg-sur-green/15 text-sur-green border-sur-green/30",
+    cls: "border-gold text-gold",
   },
   write: {
     label: "write",
-    cls: "bg-sur-yellow/15 text-sur-yellow border-sur-yellow/30",
+    cls: "border-rust text-rust",
   },
   intent: {
     label: "intent",
-    cls: "bg-sur-accent/15 text-sur-accent border-sur-accent/30",
+    cls: "border-sur-muted text-sur-muted",
   },
 };
 
@@ -128,16 +130,16 @@ export function ToolCard({
   const badge = CATEGORY_BADGE[category];
 
   return (
-    <div className="bg-sur-surface border border-sur-border rounded-lg p-4 flex flex-col gap-3">
+    <div className="border border-dashed border-ash bg-smoke p-4 flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <code className="font-mono text-[13px] font-semibold text-sur-text">
+            <code className="font-mono text-[13px] font-semibold text-bone break-all">
               {name}
             </code>
             <span
               className={cn(
-                "px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded border",
+                "px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] border",
                 badge.cls,
               )}
             >
@@ -160,7 +162,7 @@ export function ToolCard({
           <button
             onClick={handleTry}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded bg-sur-accent text-white hover:bg-sur-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] border border-gold bg-gold text-ink hover:bg-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Play size={12} />
             {busy ? "Running…" : "Try it"}
@@ -173,7 +175,7 @@ export function ToolCard({
         )}
         <a
           href="#connect-your-agent"
-          className="inline-flex items-center gap-1 text-[11px] text-sur-muted hover:text-sur-text transition-colors"
+          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] border border-gold/40 bg-gold/10 text-gold hover:bg-gold/20 transition-colors"
         >
           <BookOpen size={11} />
           SDK
@@ -181,14 +183,14 @@ export function ToolCard({
       </div>
 
       {(result || err) && (
-        <div className="border-t border-sur-border pt-3">
+        <div className="border-t border-dashed border-ash pt-3">
           {err && (
             <div className="text-[11px] text-sur-red font-mono whitespace-pre-wrap break-words">
               {err}
             </div>
           )}
           {result && (
-            <pre className="text-[11px] leading-relaxed font-mono text-sur-text bg-sur-bg/60 border border-sur-border rounded px-2 py-1.5 max-h-64 overflow-auto">
+            <pre className="text-[11px] leading-relaxed font-mono text-bone bg-ink border border-dashed border-ash px-2 py-1.5 max-h-64 overflow-auto">
               {result}
             </pre>
           )}
