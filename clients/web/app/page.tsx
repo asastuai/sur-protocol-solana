@@ -1,69 +1,67 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletButton } from "@/components/layout/WalletButton";
 import { truncatePubkey } from "@/lib/formatters";
+
+const DepthWaveField = dynamic(
+  () => import("@/components/landing/DepthWaveField"),
+  { ssr: false, loading: () => null }
+);
 
 export default function LandingPage() {
   const { publicKey, connected } = useWallet();
 
   return (
     <div className="relative">
-      {/* Hero */}
-      <section className="relative px-6 pt-20 pb-24 overflow-hidden">
+      {/* ===== HERO ===== */}
+      <section className="relative flex min-h-[86vh] flex-col overflow-hidden">
+        {/* depth-wave point field (Solana palette) */}
+        <div className="absolute inset-0">
+          <DepthWaveField />
+        </div>
+
+        {/* atmospheric overlays */}
         <div
           aria-hidden
-          className="absolute inset-0 -z-10"
+          className="pointer-events-none absolute inset-0"
           style={{
-            backgroundImage:
-              "radial-gradient(ellipse 60% 50% at 50% 30%, rgba(30,128,255,0.10) 0%, transparent 70%), radial-gradient(ellipse 40% 30% at 30% 70%, rgba(14,203,129,0.06) 0%, transparent 60%)",
-          }}
-        />
-        <div
-          aria-hidden
-          className="absolute inset-0 -z-10 opacity-30"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(30,35,41,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(30,35,41,0.4) 1px, transparent 1px)",
-            backgroundSize: "80px 80px",
-            maskImage:
-              "radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent)",
-            WebkitMaskImage:
-              "radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent)",
+            background:
+              "radial-gradient(68% 52% at 50% 42%, rgba(8,10,14,0.62), transparent 72%), radial-gradient(120% 80% at 50% 8%, rgba(153,69,255,0.14), transparent 55%), radial-gradient(90% 60% at 70% 30%, rgba(20,241,149,0.07), transparent 60%), linear-gradient(to bottom, transparent 60%, var(--sur-bg) 97%)",
           }}
         />
 
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sur-accent/10 border border-sur-accent/20 text-xs text-sur-accent font-medium mb-8">
-            <span className="w-1.5 h-1.5 rounded-full bg-sur-green live-dot" />
-            Solana devnet — read paths live
+        {/* hero content */}
+        <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-6 py-24 text-center">
+          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-sol-purple/30 bg-sol-purple/10 px-3.5 py-1.5 text-[12px] font-medium text-sur-text backdrop-blur-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-sol-green live-dot" />
+            Solana Devnet · agent-native perps
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight mb-6">
+          <h1 className="font-display text-5xl font-extrabold leading-[1.04] tracking-tight md:text-7xl">
             Perpetual futures.
             <br />
-            <span className="bg-gradient-to-r from-sur-accent via-blue-400 to-sur-green bg-clip-text text-transparent">
-              Agent-native. On Solana.
-            </span>
+            <span className="text-sol-gradient">Agent-native. On Solana.</span>
           </h1>
 
-          <p className="text-lg text-sur-muted max-w-2xl mx-auto leading-relaxed mb-10">
-            Eleven Anchor programs deployed on devnet. Read paths to markets,
-            vault balance, positions, and engine view are wired end-to-end.
-            Write paths ready behind Phase 9 init.
+          <p className="mx-auto mt-6 max-w-2xl text-[15px] leading-relaxed text-[#c4a7f5] md:text-[16px]">
+            Eleven Anchor programs live on devnet — perp engine, intent-based dark
+            pool, persistent agent reputation and MCP-native settlement.
+            Self-custodial, on-chain, built for autonomous traders.
           </p>
 
-          <div className="flex flex-wrap gap-3 justify-center mb-12">
+          <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/trade"
-              className="px-6 py-3 rounded-lg bg-sur-accent text-white text-sm font-semibold hover:brightness-110 transition-all"
+              className="rounded-lg bg-sol-gradient px-6 py-3 text-[14px] font-bold text-[#0a0e12] shadow-[0_0_28px_rgba(20,241,149,0.22)] transition hover:brightness-110"
             >
               Open Trade
             </Link>
             <Link
               href="/dashboard"
-              className="px-6 py-3 rounded-lg bg-sur-surface border border-sur-border text-sur-text text-sm font-semibold hover:bg-white/[0.04] transition-colors"
+              className="rounded-lg border border-sur-border bg-sur-surface/70 px-6 py-3 text-[14px] font-semibold text-sur-text backdrop-blur-sm transition hover:border-sol-purple/50 hover:bg-white/[0.04]"
             >
               View Dashboard
             </Link>
@@ -71,53 +69,61 @@ export default function LandingPage() {
           </div>
 
           {connected && publicKey && (
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sur-surface border border-sur-border font-mono text-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-sur-green" />
+            <div className="mt-7 inline-flex items-center gap-2 rounded-lg border border-sur-border bg-sur-surface/70 px-4 py-2 font-mono text-sm backdrop-blur-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-sol-green" />
               <span className="text-sur-muted">connected:</span>
-              <span className="text-sur-text">
-                {truncatePubkey(publicKey.toBase58())}
-              </span>
+              <span className="text-sur-text">{truncatePubkey(publicKey.toBase58())}</span>
             </div>
           )}
         </div>
+
+        {/* scroll cue */}
+        <div className="relative z-10 flex justify-center pb-7">
+          <span className="flex flex-col items-center gap-1.5 text-[11px] uppercase tracking-widest text-sur-muted">
+            Scroll
+            <svg className="h-4 w-4 animate-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </span>
+        </div>
       </section>
 
-      {/* Features grid */}
-      <section className="px-6 pb-24">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-sm font-semibold text-sur-muted uppercase tracking-wider mb-8 text-center">
-            What ships in this port
+      {/* ===== FEATURES ===== */}
+      <section className="px-6 py-24">
+        <div className="mx-auto max-w-5xl">
+          <h2 className="font-display text-3xl font-bold tracking-tight md:text-4xl">
+            What ships in this port.
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <p className="mt-3 max-w-lg text-[15px] text-sur-muted">
+            The full EVM protocol, re-architected for Solana and the agent economy.
+          </p>
+          <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3">
             <Feature
-              title="Anchor programs"
-              body="Eleven SUR programs deployed on devnet: perp_engine, perp_vault, order_settlement, oracle_router, liquidator, insurance_fund, a2a_darkpool, auto_deleveraging, collateral_manager, sur_timelock, trading_vault."
+              title="Eleven Anchor programs"
+              body="perp_engine, perp_vault, order_settlement, oracle_router, liquidator, insurance_fund, a2a_darkpool, auto_deleveraging, collateral_manager, sur_timelock, trading_vault — all deployed on devnet."
             />
             <Feature
-              title="Wallet-adapter"
-              body="Phantom, Solflare, Backpack — wired through the Solana wallet-adapter stack. Devnet-only for now. No Privy, no social login."
+              title="Agent-native by design"
+              body="Intent-based A2A dark pool, persistent on-chain agent reputation, and MCP-native tooling so autonomous agents can trade, settle and be scored."
             />
             <Feature
-              title="Read + write paths"
-              body="useMarkets, useVaultBalance, useOpenPositions, useEngineView for read. useDepositUSDC, useWithdrawUSDC, useOpenPosition, useClosePosition for write."
+              title="Self-custodial"
+              body="Phantom, Solflare and Backpack via the Solana wallet-adapter. Your keys, your funds — read and write paths wired end-to-end."
             />
           </div>
         </div>
       </section>
 
-      {/* Status section */}
-      <section className="px-6 pb-32">
-        <div className="max-w-4xl mx-auto bg-sur-surface border border-sur-border rounded-xl p-6">
-          <h3 className="text-sm font-semibold text-sur-text mb-3">
-            Phase 5 status
-          </h3>
-          <p className="text-sm text-sur-muted leading-relaxed mb-4">
-            UI ported from the EVM reference frontend. Layout, components,
-            and pages are wired to Solana on-chain reads via the Phase 3
-            hooks and to write paths via the Phase 4 tx hooks. Charts
-            (Phase 6) and dark-pool / agent panels (Phase 7) are stubbed.
+      {/* ===== STATUS ===== */}
+      <section className="px-6 pb-28">
+        <div className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-sur-border bg-sur-surface p-7">
+          <h3 className="font-display text-lg font-bold text-sur-text">Devnet status</h3>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-sur-muted">
+            UI ported from the EVM reference frontend and wired to Solana on-chain
+            reads and write paths. Charts and dark-pool / agent panels are landing
+            next. Write operations require Phase 9 program init.
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
             <StatusItem label="Programs" value="11/11 deployed" tone="ok" />
             <StatusItem label="Read paths" value="wired" tone="ok" />
             <StatusItem label="Write paths" value="wired" tone="ok" />
@@ -131,9 +137,9 @@ export default function LandingPage() {
 
 function Feature({ title, body }: { title: string; body: string }) {
   return (
-    <div className="bg-sur-surface border border-sur-border rounded-xl p-5">
-      <h3 className="text-sm font-semibold text-sur-text mb-2">{title}</h3>
-      <p className="text-xs text-sur-muted leading-relaxed">{body}</p>
+    <div className="rounded-xl border border-sur-border bg-sur-surface/60 p-6 backdrop-blur-sm transition-colors hover:border-sol-purple/40">
+      <h3 className="font-display text-[17px] font-bold text-sur-text">{title}</h3>
+      <p className="mt-2 text-[13px] leading-relaxed text-sur-muted">{body}</p>
     </div>
   );
 }
@@ -147,13 +153,11 @@ function StatusItem({
   value: string;
   tone: "ok" | "warn";
 }) {
-  const color = tone === "ok" ? "text-sur-green" : "text-sur-yellow";
+  const color = tone === "ok" ? "text-sol-green" : "text-sur-yellow";
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wider text-sur-muted">
-        {label}
-      </div>
-      <div className={`text-sm font-medium ${color} mt-1`}>{value}</div>
+      <div className="text-[10px] uppercase tracking-wider text-sur-muted">{label}</div>
+      <div className={`mt-1 text-sm font-semibold ${color}`}>{value}</div>
     </div>
   );
 }

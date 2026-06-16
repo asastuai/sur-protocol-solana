@@ -17,6 +17,17 @@ const config: Config = {
           red: "var(--sur-red)",
           yellow: "var(--sur-yellow)",
         },
+        sol: {
+          purple: "var(--sol-purple)",
+          purpleDeep: "var(--sol-purple-deep)",
+          green: "var(--sol-green)",
+        },
+        ink: "var(--ink)",
+        smoke: "var(--smoke)",
+        ash: "var(--ash)",
+        bone: "var(--bone)",
+        gold: "var(--gold)",
+        rust: "var(--rust)",
       },
       fontFamily: {
         sans: [
@@ -30,6 +41,7 @@ const config: Config = {
           "sans-serif",
         ],
         mono: ["JetBrains Mono", "SF Mono", "Fira Code", "monospace"],
+        display: ["Georgia", "ui-serif", "Cambria", "serif"],
       },
       animation: {
         "fade-in": "fade-in 0.2s ease-out",

@@ -2,15 +2,39 @@
 
 import { useCallback } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { Bot, ShieldCheck, Network, Zap } from "lucide-react";
 
 import { ToolCard } from "@/components/agents/ToolCard";
+import {
+  DossierHeader,
+  DashedPanel,
+  SectionLabel,
+  Stamp,
+  Leader,
+} from "@/components/dossier/kit";
 import { MCP_TOOLS } from "@/lib/mcp-tools";
 import { useMarkets } from "@/hooks/data/use-markets";
 import { useVaultBalance } from "@/hooks/data/use-vault-balance";
 import { useOpenPositions } from "@/hooks/data/use-open-positions";
 import { useOpenIntents } from "@/hooks/data/use-open-intents";
 import { useAgentReputation } from "@/hooks/data/use-agent-reputation";
+
+const DOCTRINE = [
+  {
+    n: "I.",
+    title: "Persistent reputation",
+    body: "Every dark pool fill, cancel, and expiry is anchored to the operative's wallet on-chain. Handlers can gate by score before accepting an intent.",
+  },
+  {
+    n: "II.",
+    title: "Intents, not orderbooks",
+    body: "Operatives post what they want — size, side, price band, reputation floor. Other operatives respond off-orderbook. No public quote footprint until settlement.",
+  },
+  {
+    n: "III.",
+    title: "Atomic settlement",
+    body: "One Solana tx opens both legs of the trade, transfers fees, and updates reputation. No leg risk, no waiting on a relayer.",
+  },
+];
 
 export default function AgentsPage() {
   const { publicKey } = useWallet();
@@ -93,96 +117,93 @@ export default function AgentsPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10">
-      {/* Hero */}
-      <section className="mb-12">
-        <div className="flex items-center gap-2 text-sur-accent text-[11px] uppercase tracking-widest font-semibold mb-3">
-          <Bot size={14} />
-          <span>Agent API</span>
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-bold text-sur-text mb-3 leading-tight">
-          SUR Agent API — built for LLM agents to trade autonomously
-        </h1>
-        <p className="text-sur-muted max-w-2xl text-[14px] leading-relaxed">
-          Every primitive on SUR — deposit, open position, post intent, accept
-          intent — is exposed as a typed MCP tool. Drop your agent in, give it
-          a wallet, and it can route capital across markets without a human in
-          the loop.
-        </p>
+    <div className="mx-auto max-w-6xl px-4 py-10">
+      <DossierHeader
+        path="agents"
+        title="Agents"
+        subtitle="Operative API — every SUR primitive issued as a typed MCP tool for autonomous handlers."
+        stamps={
+          <>
+            <Stamp>Devnet // 2026</Stamp>
+            <Stamp tone="muted">Read-only</Stamp>
+          </>
+        }
+      />
+
+      {/* Briefing */}
+      <section className="mb-10">
+        <DashedPanel title="Briefing">
+          <p className="max-w-2xl text-[13px] leading-relaxed text-bone">
+            Every primitive on SUR — deposit, open position, post intent, accept
+            intent — is exposed as a typed MCP tool. Drop your operative in, hand
+            it a wallet, and it routes capital across markets with no handler in
+            the loop.
+          </p>
+        </DashedPanel>
       </section>
 
-      {/* Why agent-native */}
-      <section className="mb-12 grid gap-4 grid-cols-1 md:grid-cols-3">
-        <div className="bg-sur-surface border border-sur-border rounded-lg p-4">
-          <ShieldCheck className="text-sur-accent mb-2" size={18} />
-          <h3 className="font-semibold text-sur-text text-[14px] mb-1">
-            Persistent reputation
-          </h3>
-          <p className="text-[12px] text-sur-muted leading-relaxed">
-            Every dark pool fill, cancel, and expiry is anchored to your
-            wallet on-chain. Counterparties can gate by score before
-            accepting your intents.
-          </p>
-        </div>
-        <div className="bg-sur-surface border border-sur-border rounded-lg p-4">
-          <Network className="text-sur-accent mb-2" size={18} />
-          <h3 className="font-semibold text-sur-text text-[14px] mb-1">
-            Intents, not orderbooks
-          </h3>
-          <p className="text-[12px] text-sur-muted leading-relaxed">
-            Agents post what they want — size, side, price band, reputation
-            floor. Other agents respond off-orderbook. No public quote
-            footprint until settlement.
-          </p>
-        </div>
-        <div className="bg-sur-surface border border-sur-border rounded-lg p-4">
-          <Zap className="text-sur-accent mb-2" size={18} />
-          <h3 className="font-semibold text-sur-text text-[14px] mb-1">
-            Atomic settlement
-          </h3>
-          <p className="text-[12px] text-sur-muted leading-relaxed">
-            One Solana tx opens both legs of the trade, transfers fees, and
-            updates reputation. No leg risk, no waiting on a relayer.
-          </p>
-        </div>
-      </section>
-
-      {/* Tool surface */}
-      <section className="mb-12">
-        <div className="flex items-baseline justify-between mb-4">
-          <h2 className="text-lg font-semibold text-sur-text">Tool surface</h2>
-          <span className="text-[11px] text-sur-muted">
-            {MCP_TOOLS.length} tools across 3 programs
-          </span>
-        </div>
-        <div className="grid gap-3 grid-cols-1 lg:grid-cols-2">
-          {MCP_TOOLS.map((tool) => (
-            <ToolCard
-              key={tool.name}
-              name={tool.name}
-              description={tool.description}
-              inputSchema={tool.input}
-              outputSchema={tool.output}
-              category={tool.category}
-              onTryIt={
-                tool.category === "read" ? TRY_HANDLERS[tool.name] : undefined
-              }
-            />
+      {/* Doctrine — agent-native rationale, as case notes */}
+      <section className="mb-10">
+        <SectionLabel>operating doctrine</SectionLabel>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {DOCTRINE.map((d) => (
+            <div
+              key={d.title}
+              className="border border-dashed border-ash p-4"
+            >
+              <div className="mb-2 flex items-baseline gap-2">
+                <span className="text-gold">{d.n}</span>
+                <span className="text-[13px] text-bone">{d.title}</span>
+              </div>
+              <p className="text-[12px] leading-relaxed text-sur-muted">
+                {d.body}
+              </p>
+            </div>
           ))}
         </div>
       </section>
 
-      {/* Connect your agent */}
-      <section id="connect-your-agent" className="mb-12">
-        <h2 className="text-lg font-semibold text-sur-text mb-4">
-          Connect your agent
-        </h2>
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <div>
-            <div className="text-[11px] uppercase tracking-wider text-sur-muted mb-2 font-semibold">
-              TypeScript — @asastuai/sur-sdk
-            </div>
-            <pre className="text-[12px] leading-relaxed font-mono text-sur-text bg-sur-surface border border-sur-border rounded-lg p-3 overflow-x-auto">
+      {/* Tool surface — the dossier of available tools */}
+      <section className="mb-10">
+        <DashedPanel
+          title="Tool surface"
+          bodyClassName="p-5 md:p-6"
+        >
+          <div className="mb-4 flex items-baseline justify-between border-b border-dashed border-ash pb-3 text-[11px] uppercase tracking-[0.18em] text-sur-muted">
+            <span className="text-gold">// issued tools</span>
+            <span className="flex items-center gap-2">
+              <Leader />
+              <span className="tabular-nums">{MCP_TOOLS.length} tools across 3 programs</span>
+            </span>
+          </div>
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {MCP_TOOLS.map((tool) => (
+              <ToolCard
+                key={tool.name}
+                name={tool.name}
+                description={tool.description}
+                inputSchema={tool.input}
+                outputSchema={tool.output}
+                category={tool.category}
+                onTryIt={
+                  tool.category === "read" ? TRY_HANDLERS[tool.name] : undefined
+                }
+              />
+            ))}
+          </div>
+        </DashedPanel>
+      </section>
+
+      {/* Connect your agent — field manual */}
+      <section id="connect-your-agent" className="mb-10">
+        <DashedPanel title="Field manual">
+          <SectionLabel>deploy your operative</SectionLabel>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div>
+              <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-sur-muted">
+                TypeScript — @asastuai/sur-sdk
+              </div>
+              <pre className="overflow-x-auto border border-dashed border-ash bg-smoke p-3 text-[12px] leading-relaxed text-bone">
 {`import { SurClient } from "@asastuai/sur-sdk";
 
 const sur = new SurClient({ cluster: "devnet", wallet });
@@ -200,13 +221,13 @@ const { signature, intentId } = await sur.postIntent({
   maxPrice: BigInt(51_000_000_000),
   durationSecs: 600n,
 });`}
-            </pre>
-          </div>
-          <div>
-            <div className="text-[11px] uppercase tracking-wider text-sur-muted mb-2 font-semibold">
-              Python — sur-sdk
+              </pre>
             </div>
-            <pre className="text-[12px] leading-relaxed font-mono text-sur-text bg-sur-surface border border-sur-border rounded-lg p-3 overflow-x-auto">
+            <div>
+              <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-sur-muted">
+                Python — sur-sdk
+              </div>
+              <pre className="overflow-x-auto border border-dashed border-ash bg-smoke p-3 text-[12px] leading-relaxed text-bone">
 {`from sur_sdk import SurClient
 
 sur = SurClient(cluster="devnet", keypair=kp)
@@ -222,17 +243,22 @@ sig = sur.post_intent(
     max_price=51_000_000_000,
     duration_secs=600,
 )`}
-            </pre>
+              </pre>
+            </div>
           </div>
-        </div>
+        </DashedPanel>
       </section>
 
-      <section className="border-t border-sur-border pt-6">
-        <p className="text-[12px] text-sur-muted leading-relaxed">
-          Programs are deployed on Solana devnet. Write tools require init
-          (Phase 9) to land — read tools return empty results gracefully
-          until then.
-        </p>
+      <section className="border-t border-dashed border-ash pt-5 text-[10px] uppercase tracking-[0.2em] text-sur-muted">
+        <div className="flex flex-wrap items-center gap-x-2">
+          <span className="text-gold">// note</span>
+          <Leader />
+          <span className="normal-case tracking-normal text-[12px] leading-relaxed text-sur-muted">
+            Programs are deployed on Solana devnet. Write tools require init
+            (Phase 9) to land — read tools return empty results gracefully until
+            then.
+          </span>
+        </div>
       </section>
     </div>
   );

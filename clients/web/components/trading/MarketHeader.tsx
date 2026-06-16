@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useMarketState } from "@/hooks/data/use-market-state";
+import { useBinanceStats } from "@/hooks/data/use-binance-stats";
 import { findMarket } from "@/lib/markets";
 import { formatBN, PRICE_DECIMALS, SIZE_DECIMALS } from "@/lib/formatters";
 import { MarketSelector } from "./MarketSelector";
@@ -11,11 +12,36 @@ interface Props {
   onSelect: (symbol: string) => void;
 }
 
+function fmtUsd(n: number): string {
+  return n >= 1
+    ? n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : n.toFixed(4);
+}
+
+function fmtCompact(n: number): string {
+  if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
+  if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
+  if (n >= 1e3) return `$${(n / 1e3).toFixed(1)}K`;
+  return `$${n.toFixed(0)}`;
+}
+
+function Cell({ label, value, className }: { label: string; value: ReactNode; className?: string }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <span className="whitespace-nowrap text-[9px] uppercase tracking-[0.12em] text-sur-muted">
+        {label}
+      </span>
+      <span className={`whitespace-nowrap text-[12px] font-semibold tabular-nums ${className ?? "text-bone"}`}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
 export function MarketHeader({ symbol, onSelect }: Props) {
   const market = findMarket(symbol);
-  const { market: state, loading } = useMarketState(
-    market?.marketId ?? new Uint8Array(32),
-  );
+  const { market: state, loading } = useMarketState(market?.marketId ?? new Uint8Array(32));
+  const stats = useBinanceStats(symbol);
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -30,29 +56,32 @@ export function MarketHeader({ symbol, onSelect }: Props) {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  const price = state ? `$${formatBN(state.markPrice, PRICE_DECIMALS, 2)}` : "—";
-  const oiLong = state ? formatBN(state.openInterestLong, SIZE_DECIMALS, 4) : "—";
-  const oiShort = state ? formatBN(state.openInterestShort, SIZE_DECIMALS, 4) : "—";
-  const wsColor = state ? "#0ECB81" : loading ? "#F0B90B" : "#F6465D";
-  const wsLabel = state ? "On-chain" : loading ? "Loading…" : "Uninit";
+  const up = stats.changePercent >= 0;
+  const markPrice = stats.price > 0 ? `$${fmtUsd(stats.price)}` : "—";
+  const oracle =
+    state && !state.indexPrice.isZero() ? `$${formatBN(state.indexPrice, PRICE_DECIMALS, 2)}` : "—";
+  const oiLong = state ? formatBN(state.openInterestLong, SIZE_DECIMALS, 2) : "—";
+  const oiShort = state ? formatBN(state.openInterestShort, SIZE_DECIMALS, 2) : "—";
+  const dotColor = state ? "var(--gold)" : loading ? "#F0B90B" : "#F6465D";
+  const dotLabel = state ? "On-chain" : loading ? "Loading" : "Devnet uninit";
 
   return (
-    <header className="h-10 border-b border-sur-border bg-sur-bg/50 flex items-center justify-between px-4 flex-shrink-0">
+    <header className="flex flex-shrink-0 items-center justify-between gap-4 overflow-x-auto border-b border-dashed border-ash bg-ink px-4 py-2 font-mono scrollbar-thin">
       <div className="flex items-center gap-4">
-        <div className="relative" ref={wrapperRef}>
+        <div className="relative shrink-0" ref={wrapperRef}>
           <button
             onClick={() => setOpen(!open)}
             aria-label="Select market"
             aria-expanded={open}
-            className="flex items-center gap-2 px-2.5 py-1 rounded hover:bg-white/[0.04] transition-colors"
+            className="flex items-center gap-2 rounded-none border border-transparent px-2 py-1 transition-colors hover:border-ash"
           >
-            <span className="font-semibold text-sm">{symbol}</span>
+            <span className="font-display text-[15px] font-bold text-bone">{symbol}</span>
             <svg
               width="10"
               height="6"
               viewBox="0 0 10 6"
               fill="none"
-              className={`text-sur-muted transition-transform ${open ? "rotate-180" : ""}`}
+              className={`text-gold transition-transform ${open ? "rotate-180" : ""}`}
             >
               <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
@@ -65,33 +94,26 @@ export function MarketHeader({ symbol, onSelect }: Props) {
           />
         </div>
 
-        <div className="w-px h-5 bg-sur-border" />
+        <div className="h-7 w-px shrink-0 bg-ash" />
 
-        <div className="flex items-center gap-3">
-          <span className="tabular-nums font-semibold text-sm">{price}</span>
-        </div>
-
-        <div className="hidden lg:flex items-center gap-5 text-[11px] text-sur-muted">
-          <div>
-            <span className="mr-1.5">OI Long</span>
-            <span className="text-sur-text tabular-nums">{oiLong}</span>
-          </div>
-          <div>
-            <span className="mr-1.5">OI Short</span>
-            <span className="text-sur-text tabular-nums">{oiShort}</span>
-          </div>
-          <div>
-            <span className="mr-1.5">Leverage</span>
-            <span className="text-sur-text tabular-nums">{market?.maxLeverage ?? "—"}x</span>
-          </div>
+        <div className="flex items-center gap-5">
+          <Cell label="Mark" value={markPrice} />
+          <Cell label="Oracle" value={oracle} />
+          <Cell
+            label="24h"
+            value={`${up ? "+" : ""}${stats.changePercent.toFixed(2)}%`}
+            className={up ? "text-sur-green" : "text-sur-red"}
+          />
+          <Cell label="24h Vol" value={stats.volume > 0 ? fmtCompact(stats.volume) : "—"} />
+          <Cell label="OI Long" value={oiLong} className="text-sur-muted" />
+          <Cell label="OI Short" value={oiShort} className="text-sur-muted" />
+          <Cell label="Max Lev" value={`${market?.maxLeverage ?? "—"}x`} className="text-gold" />
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full live-dot" style={{ background: wsColor }} />
-          <span className="text-[10px] text-sur-muted">{wsLabel}</span>
-        </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <span className="h-1.5 w-1.5 rounded-full live-dot" style={{ background: dotColor }} />
+        <span className="text-[10px] uppercase tracking-[0.14em] text-sur-muted">{dotLabel}</span>
       </div>
     </header>
   );
