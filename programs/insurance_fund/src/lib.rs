@@ -20,7 +20,7 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("A9TY4wcr6Buzrac5XLC5aQvz4wWyYjQSogsVBvS3eKPp");
+declare_id!("3p6HGqQmLB6fBQ3kQE1hQ3xPCLD2Bn4RPbHUwJD4HyV9");
 
 #[program]
 pub mod insurance_fund {

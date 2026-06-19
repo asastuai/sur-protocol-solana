@@ -5,17 +5,17 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-a2a_darkpool = "BVrt7REAZoCZBEY987fUPEjn2EvnXyaFzpMPVXb81rnq"
-auto_deleveraging = "F12KjhGRyiEbM629MHookPFar7xsbfbfafoZjuBmCTDz"
-collateral_manager = "2LavJpzUzHWs2cJTAp2BEvvS2Kxrr9gfaWgSVH4s3juh"
-insurance_fund = "A9TY4wcr6Buzrac5XLC5aQvz4wWyYjQSogsVBvS3eKPp"
-liquidator = "9APXqgHS7aNtYsjDE1SJ6PiboJPSyv2QhG9SmLaCzg2R"
-oracle_router = "CC5Xc5DTyLSfcw3MiXbyJQyRA21mh3Shup6bgMH8WGSS"
-order_settlement = "2q4HtPAjUMFPDfipazQhb52sRun3x9TdpwRHysWBg6Vf"
-perp_engine = "Cwpbe4mwgFdnhwhoRBGBzUerQa52cJMqXWjG3wGvYFW8"
-perp_vault = "FpbuRBF3RiAkpD3k8XccnoYH99W5g9R59aRd3jRZTBfU"
-sur_timelock = "9FeQoWChgaRqvKJGqjTmVvpF7jQ4Ph7zgSsrkA4NnwAF"
-trading_vault = "JE4JwZ3b7eYoBsTempCUbkBiFAgYrTsisn2uMssWGvCy"
+a2a_darkpool = "3jPooLaiWoq5DA4SeXMfP4MT4hrp6X1zrASD9hcYqKke"
+auto_deleveraging = "6rg7CTKmrsxWLxRPApT9gkidE8i3aqJKf8AKCVgbENRf"
+collateral_manager = "CzsxUSohWydLesZ2nfAa7WqpiZfWhZkWUHhBMkFS29VU"
+insurance_fund = "3p6HGqQmLB6fBQ3kQE1hQ3xPCLD2Bn4RPbHUwJD4HyV9"
+liquidator = "8aerVEjWfL65UtdTTLSYJmrNp2uabou8ySjdLw8BXD5p"
+oracle_router = "D9WVUxHXmH8y3yB6N6aA8MBytiKY7noG2RG2PdHPqMBx"
+order_settlement = "8EmiZ2VW9H2nkT45wnkex8iLLQ6B8S5NVuV8mYeHFHzJ"
+perp_engine = "BnPETJ3Wa9M2nNLr6Gua3HwKhQyFHfXTXqBwh8KLSFK2"
+perp_vault = "HDS6P815i9ZTCriGVMxvvTAY5bkToTSf8XGfPKjSpCxQ"
+sur_timelock = "8VRBi4s3D12Y7sbUYLSmsCGLDnj6xAVSNL1KfhYiCnUw"
+trading_vault = "aMYTJ33dzuTXXHpRSAp9UsR5jogu7sdJUDtVrSx9bjT"
 
 [programs.localnet]
 a2a_darkpool = "BVrt7REAZoCZBEY987fUPEjn2EvnXyaFzpMPVXb81rnq"

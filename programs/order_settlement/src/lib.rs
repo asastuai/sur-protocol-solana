@@ -29,7 +29,7 @@ use instructions::operator_admin::*;
 use instructions::settle::*;
 use state::*;
 
-declare_id!("2q4HtPAjUMFPDfipazQhb52sRun3x9TdpwRHysWBg6Vf");
+declare_id!("8EmiZ2VW9H2nkT45wnkex8iLLQ6B8S5NVuV8mYeHFHzJ");
 
 #[program]
 pub mod order_settlement {

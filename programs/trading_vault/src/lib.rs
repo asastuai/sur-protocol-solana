@@ -32,7 +32,7 @@ use instructions::manager_trade::*;
 use instructions::vault_admin::*;
 use instructions::withdraw::*;
 
-declare_id!("JE4JwZ3b7eYoBsTempCUbkBiFAgYrTsisn2uMssWGvCy");
+declare_id!("aMYTJ33dzuTXXHpRSAp9UsR5jogu7sdJUDtVrSx9bjT");
 
 #[program]
 pub mod trading_vault {

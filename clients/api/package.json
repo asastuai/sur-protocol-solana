@@ -1,0 +1,27 @@
+{
+  "name": "@sur/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SUR points/leaderboard indexer + API + onboarding service (build-ahead; runs once devnet re-deploy lands)",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "indexer": "tsx src/indexer.ts",
+    "points": "tsx src/points.ts",
+    "migrate": "psql \"$DATABASE_URL\" -f db/schema.sql",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "0.31.1",
+    "@solana/web3.js": "^1.95.0",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.28.0",
+    "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  }
+}
