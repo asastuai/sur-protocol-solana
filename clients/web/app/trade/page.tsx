@@ -37,12 +37,12 @@ export default function TradePage() {
         {/* Right region — chart + order book split 50/50, positions underneath */}
         <section className="flex min-w-0 flex-1 flex-col">
           <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-            {/* Chart — half the freed space */}
+            {/* Chart — grows to fill the freed space (larger than the book) */}
             <div className="h-[55vh] min-w-0 border-b border-dashed border-ash lg:h-auto lg:flex-1 lg:border-b-0 lg:border-r">
               <TradingViewChart symbol={symbol} />
             </div>
-            {/* Order book — the other half */}
-            <div className="flex h-[26rem] min-w-0 flex-col lg:h-auto lg:flex-1">
+            {/* Order book — fixed comfortable column; chart takes the rest */}
+            <div className="flex h-[26rem] min-w-0 flex-col lg:h-auto lg:w-[340px] lg:flex-none">
               <OrderBook
                 orderBook={ob.orderBook}
                 recentTrades={ob.recentTrades}
