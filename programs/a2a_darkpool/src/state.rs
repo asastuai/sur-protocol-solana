@@ -52,6 +52,30 @@ impl DarkPoolConfig {
 }
 
 // ============================================================
+//          FRESHNESS CONFIG (proof-of-context sidecar PDA)
+// ============================================================
+// Proof-of-context freshness parameters, kept in a SEPARATE PDA from
+// DarkPoolConfig so adding them does not change the existing config layout
+// (which would break deserialization of the already-deployed config account).
+// One PDA seeded by ["freshness_config"]; created once via init_freshness_config.
+
+#[account]
+pub struct FreshnessConfig {
+    pub bump: u8,
+    /// Max age, in seconds, of the canonical market price at settlement time
+    /// (`now - Market.last_price_update`). A negotiated trade whose market
+    /// price is older than this does not clear (proof-of-context `f_i`).
+    pub max_settlement_price_age: i64,
+}
+
+impl FreshnessConfig {
+    pub const SEED: &'static [u8] = b"freshness_config";
+
+    // 8 (discriminator) + 1 (bump) + 8 (i64)
+    pub const SIZE: usize = 8 + 1 + 8;
+}
+
+// ============================================================
 //                    INTENT STATUS / RESPONSE STATUS
 // ============================================================
 
@@ -97,13 +121,19 @@ pub struct Intent {
     /// uses this value, NOT the current config.fee_bps. Admin bumps to
     /// fee_bps do not retroactively alter fees on intents already posted.
     pub fee_bps_at_post: u64,
+
+    /// Proof-of-context: a 32-byte commitment to the off-chain context this
+    /// agent reasoned over when forming its quote (model + input-world view).
+    /// Authenticated by the agent's own tx signature at post time. `[0u8; 32]`
+    /// means "none". Stored + emitted for binding / audit / dispute.
+    pub context_commitment: [u8; 32],
 }
 
 impl Intent {
     pub const SEED_PREFIX: &'static [u8] = b"intent";
 
-    // 8 (disc) + 1 + 8 + 32 + 32 + 1 + 8*5 + 1 (enum tag) + 8 + 8
-    pub const SIZE: usize = 8 + 1 + 8 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 1 + 8 + 8;
+    // 8 (disc) + 1 + 8 + 32 + 32 + 1 + 8*5 + 1 (enum tag) + 8 + 8 + 32 (context_commitment)
+    pub const SIZE: usize = 8 + 1 + 8 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 1 + 8 + 8 + 32;
 }
 
 // ============================================================
@@ -120,13 +150,16 @@ pub struct Response {
     pub created_at: i64,
     pub expires_at: i64,
     pub status: ResponseStatus,
+
+    /// Proof-of-context commitment for this quote (see `Intent::context_commitment`).
+    pub context_commitment: [u8; 32],
 }
 
 impl Response {
     pub const SEED_PREFIX: &'static [u8] = b"response";
 
-    // 8 (disc) + 1 + 8 + 8 + 32 + 8 + 8 + 8 + 1
-    pub const SIZE: usize = 8 + 1 + 8 + 8 + 32 + 8 + 8 + 8 + 1;
+    // 8 (disc) + 1 + 8 + 8 + 32 + 8 + 8 + 8 + 1 + 32 (context_commitment)
+    pub const SIZE: usize = 8 + 1 + 8 + 8 + 32 + 8 + 8 + 8 + 1 + 32;
 }
 
 // ============================================================

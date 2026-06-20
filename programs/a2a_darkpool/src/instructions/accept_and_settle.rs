@@ -45,7 +45,17 @@ pub struct AcceptAndSettle<'info> {
         seeds = [DarkPoolConfig::SEED],
         bump = config.bump,
     )]
-    pub config: Account<'info, DarkPoolConfig>,
+    pub config: Box<Account<'info, DarkPoolConfig>>,
+
+    /// Proof-of-context freshness parameters (sidecar PDA). Must be
+    /// initialized once via `init_freshness_config` before settlements run.
+    /// Boxed: this context's account list is large and an unboxed account here
+    /// overflows the 4 KB BPF stack frame.
+    #[account(
+        seeds = [FreshnessConfig::SEED],
+        bump = freshness_config.bump,
+    )]
+    pub freshness_config: Box<Account<'info, FreshnessConfig>>,
 
     #[account(
         mut,
@@ -159,6 +169,38 @@ pub(crate) fn handler(ctx: Context<AcceptAndSettle>) -> Result<()> {
         clock.unix_timestamp <= response.expires_at,
         DarkPoolError::ResponseExpired
     );
+
+    // ---- Proof-of-context f_i gate: canonical market price must be fresh ----
+    // The trade clears only if the price it settles against is recent. Bind the
+    // engine_market account to this intent's market_id, then read its
+    // last_price_update (raw bytes — engine_market is a cross-program account)
+    // and require it is within the freshness budget. Trustless: the chain itself
+    // recorded the price vintage. f_s is already enforced by the expiry checks
+    // above; f_m/f_c are deferred.
+    let price_as_of: i64 = {
+        let (expected_market, _) =
+            Pubkey::find_program_address(&[b"market", &intent.market_id], &config.perp_engine);
+        require!(
+            ctx.accounts.engine_market.key() == expected_market,
+            DarkPoolError::MarketAccountMismatch
+        );
+        let data = ctx.accounts.engine_market.try_borrow_data()?;
+        // Market layout: 8 disc +1 bump +32 market_id +1 active +8·3 margins
+        // +8 mark +8 index → last_price_update (i64) at byte offset 82.
+        require!(data.len() >= 90, DarkPoolError::MarketAccountMismatch);
+        let last_price_update = i64::from_le_bytes(data[82..90].try_into().unwrap());
+        drop(data);
+        require!(
+            clock.unix_timestamp >= last_price_update,
+            DarkPoolError::FuturePrice
+        );
+        require!(
+            clock.unix_timestamp - last_price_update
+                <= ctx.accounts.freshness_config.max_settlement_price_age,
+            DarkPoolError::StalePrice
+        );
+        last_price_update
+    };
 
     // Snapshot pre-mutation values.
     let buyer = if intent.is_buy { intent.agent } else { response.agent };
@@ -301,6 +343,7 @@ pub(crate) fn handler(ctx: Context<AcceptAndSettle>) -> Result<()> {
         size,
         price,
         timestamp: clock.unix_timestamp,
+        price_as_of,
     });
 
     Ok(())

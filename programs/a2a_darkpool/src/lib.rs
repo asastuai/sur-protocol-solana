@@ -77,6 +77,22 @@ pub mod a2a_darkpool {
         instructions::admin::unpause(ctx)
     }
 
+    // ============ PROOF-OF-CONTEXT FRESHNESS (sidecar config) ============
+
+    pub fn init_freshness_config(
+        ctx: Context<InitFreshnessConfig>,
+        max_settlement_price_age: i64,
+    ) -> Result<()> {
+        instructions::admin::init_freshness_config(ctx, max_settlement_price_age)
+    }
+
+    pub fn set_max_settlement_price_age(
+        ctx: Context<SetFreshnessBudget>,
+        secs: i64,
+    ) -> Result<()> {
+        instructions::admin::set_max_settlement_price_age(ctx, secs)
+    }
+
     // ====================== INTENT FLOW ======================
 
     pub fn post_intent(
@@ -87,9 +103,17 @@ pub mod a2a_darkpool {
         min_price: u64,
         max_price: u64,
         duration: i64,
+        context_commitment: [u8; 32],
     ) -> Result<()> {
         instructions::post_intent::handler(
-            ctx, market_id, is_buy, size, min_price, max_price, duration,
+            ctx,
+            market_id,
+            is_buy,
+            size,
+            min_price,
+            max_price,
+            duration,
+            context_commitment,
         )
     }
 
@@ -99,8 +123,13 @@ pub mod a2a_darkpool {
 
     // ====================== RESPONSE FLOW ======================
 
-    pub fn post_response(ctx: Context<PostResponse>, price: u64, duration: i64) -> Result<()> {
-        instructions::post_response::handler(ctx, price, duration)
+    pub fn post_response(
+        ctx: Context<PostResponse>,
+        price: u64,
+        duration: i64,
+        context_commitment: [u8; 32],
+    ) -> Result<()> {
+        instructions::post_response::handler(ctx, price, duration, context_commitment)
     }
 
     pub fn cancel_response(ctx: Context<CancelResponse>) -> Result<()> {

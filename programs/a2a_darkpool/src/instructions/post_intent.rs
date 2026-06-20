@@ -59,6 +59,7 @@ pub(crate) fn handler(
     min_price: u64,
     max_price: u64,
     duration: i64,
+    context_commitment: [u8; 32],
 ) -> Result<()> {
     let config = &mut ctx.accounts.config;
     require!(!config.paused, DarkPoolError::PausedError);
@@ -112,6 +113,7 @@ pub(crate) fn handler(
     intent.status = IntentStatus::Open;
     intent.filled_response_id = 0;
     intent.fee_bps_at_post = config.fee_bps;
+    intent.context_commitment = context_commitment;
 
     config.next_intent_id = config
         .next_intent_id
@@ -127,6 +129,7 @@ pub(crate) fn handler(
         min_price,
         max_price,
         expires_at: intent.expires_at,
+        context_commitment,
     });
 
     Ok(())

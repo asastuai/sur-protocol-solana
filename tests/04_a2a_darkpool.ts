@@ -63,6 +63,16 @@ describe("a2a_darkpool", () => {
       program.programId,
     )[0];
 
+  // Proof-of-context freshness sidecar PDA + a price operator the test uses to
+  // push a fresh mark price (so the f_i gate has a recent last_price_update).
+  const [freshnessConfigPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("freshness_config")],
+    program.programId,
+  );
+  const priceOperatorKp = Keypair.generate();
+  const ctxCommitmentA = Array.from(Buffer.alloc(32, 0xa1)); // intent agent's context hash
+  const ctxCommitmentB = Array.from(Buffer.alloc(32, 0xb2)); // responder's context hash
+
   // Vault PDAs
   const [vaultConfigPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("vault_config")],
@@ -214,6 +224,51 @@ describe("a2a_darkpool", () => {
     assert.isFalse(cfg.paused);
   });
 
+  it("initializes freshness config + pushes a fresh mark price", async () => {
+    // Proof-of-context f_i budget (sidecar PDA, leaves DarkPoolConfig untouched).
+    await program.methods
+      .initFreshnessConfig(new anchor.BN(60)) // 60s budget to start
+      .accounts({
+        config: configPda,
+        freshnessConfig: freshnessConfigPda,
+        owner: owner.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+
+    const fc = await program.account.freshnessConfig.fetch(freshnessConfigPda);
+    assert.equal(fc.maxSettlementPriceAge.toNumber(), 60);
+
+    // Register a price operator on the engine + push a fresh mark price so the
+    // BTC market's last_price_update is recent for the settle tests below.
+    const sig = await provider.connection.requestAirdrop(
+      priceOperatorKp.publicKey,
+      2 * LAMPORTS_PER_SOL,
+    );
+    await provider.connection.confirmTransaction(sig);
+
+    await engine.methods
+      .setOperator(priceOperatorKp.publicKey, true)
+      .accounts({
+        engineConfig: engineConfigPda,
+        operatorAccount: engineOperatorPda(priceOperatorKp.publicKey),
+        owner: owner.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+
+    await engine.methods
+      .updateMarkPrice(new anchor.BN(50_000_000_000), new anchor.BN(50_000_000_000))
+      .accounts({
+        engineConfig: engineConfigPda,
+        market: engineMarketPda,
+        operatorAccount: engineOperatorPda(priceOperatorKp.publicKey),
+        operator: priceOperatorKp.publicKey,
+      })
+      .signers([priceOperatorKp])
+      .rpc();
+  });
+
   it("posts an intent (BUY 1 BTC at $49,800-$50,200)", async () => {
     const intentId = new anchor.BN(1);
     await program.methods
@@ -224,6 +279,7 @@ describe("a2a_darkpool", () => {
         new anchor.BN(49_800 * 1_000_000),
         new anchor.BN(50_200 * 1_000_000),
         new anchor.BN(3600),
+        ctxCommitmentA,                       // proof-of-context commitment
       )
       .accounts({
         config: configPda,
@@ -238,6 +294,7 @@ describe("a2a_darkpool", () => {
     const intent = await program.account.intent.fetch(intentPda(intentId));
     assert.equal(intent.id.toNumber(), 1);
     assert.isTrue(intent.isBuy);
+    assert.deepEqual(Array.from(intent.contextCommitment), ctxCommitmentA);
   });
 
   it("posts a response", async () => {
@@ -248,6 +305,7 @@ describe("a2a_darkpool", () => {
       .postResponse(
         new anchor.BN(50_000 * 1_000_000),
         new anchor.BN(600),
+        ctxCommitmentB,                       // proof-of-context commitment
       )
       .accounts({
         config: configPda,
@@ -262,11 +320,82 @@ describe("a2a_darkpool", () => {
 
     const response = await program.account.response.fetch(responsePda(responseId));
     assert.equal(response.intentId.toNumber(), 1);
+    assert.deepEqual(Array.from(response.contextCommitment), ctxCommitmentB);
+  });
+
+  it("rejects settlement when the market price is stale (f_i gate)", async () => {
+    const intentId = new anchor.BN(1);
+    const responseId = new anchor.BN(1);
+
+    // Tighten the freshness budget to 1s, then let the pushed price age past it.
+    await program.methods
+      .setMaxSettlementPriceAge(new anchor.BN(1))
+      .accounts({
+        config: configPda,
+        freshnessConfig: freshnessConfigPda,
+        owner: owner.publicKey,
+      })
+      .rpc();
+    await new Promise((r) => setTimeout(r, 2500)); // price now > 1s old
+
+    let threw = false;
+    try {
+      await program.methods
+        .acceptAndSettle()
+        .accounts({
+          config: configPda,
+          freshnessConfig: freshnessConfigPda,
+          intent: intentPda(intentId),
+          response: responsePda(responseId),
+          intentCreatorReputation: reputationPda(intentCreator.publicKey),
+          responderReputation: reputationPda(responder.publicKey),
+          intentCreator: intentCreator.publicKey,
+          darkpoolAuthority: darkpoolAuthorityPda,
+          perpEngineProgram: engine.programId,
+          engineConfig: engineConfigPda,
+          engineMarket: engineMarketPda,
+          buyerPosition: positionPda(intentCreator.publicKey),
+          sellerPosition: positionPda(responder.publicKey),
+          buyerTrader: intentCreator.publicKey,
+          sellerTrader: responder.publicKey,
+          engineOperatorAccount: engineOperatorPda(darkpoolAuthorityPda),
+          engineAuthority: engineAuthorityPda,
+          engineVaultOperator: vaultOperatorPda(engineAuthorityPda),
+          enginePoolBalance: balancePda(engineAuthorityPda),
+          perpVaultProgram: vault.programId,
+          vaultConfig: vaultConfigPda,
+          vaultOperatorAccount: vaultOperatorPda(darkpoolAuthorityPda),
+          buyerBalance: balancePda(intentCreator.publicKey),
+          sellerBalance: balancePda(responder.publicKey),
+          feeRecipientBalance: balancePda(feeRecipient.publicKey),
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([intentCreator])
+        .rpc();
+    } catch (e: any) {
+      threw = true;
+      assert.include(JSON.stringify(e), "StalePrice", "must reject with StalePrice");
+    }
+    assert.isTrue(threw, "stale price must block settlement");
+
+    // CEI: the failed settle ran before status flips, so the intent is still Open.
+    const intent = await program.account.intent.fetch(intentPda(intentId));
+    assert.deepEqual(intent.status, { open: {} });
   });
 
   it("settles via CPI: opens positions in engine + moves fee in vault", async () => {
     const intentId = new anchor.BN(1);
     const responseId = new anchor.BN(1);
+
+    // Restore a generous freshness budget so the (slightly aged) price clears.
+    await program.methods
+      .setMaxSettlementPriceAge(new anchor.BN(86_400))
+      .accounts({
+        config: configPda,
+        freshnessConfig: freshnessConfigPda,
+        owner: owner.publicKey,
+      })
+      .rpc();
 
     const buyerBalanceBefore = (await vault.account.accountBalance.fetch(
       balancePda(intentCreator.publicKey),
@@ -286,6 +415,7 @@ describe("a2a_darkpool", () => {
       .acceptAndSettle()
       .accounts({
         config: configPda,
+        freshnessConfig: freshnessConfigPda,
         intent: intentPda(intentId),
         response: responsePda(responseId),
         intentCreatorReputation: reputationPda(intentCreator.publicKey),
