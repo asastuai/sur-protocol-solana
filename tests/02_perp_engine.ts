@@ -113,6 +113,59 @@ describe("perp_engine", () => {
     { pubkey: balancePda(insuranceFundAuthority.publicKey), isSigner: false, isWritable: true },
   ];
 
+  // Helpers for the reduce_position battery — each test uses a fresh funded
+  // trader so positions don't couple across `it`s.
+  const fundTrader = async (kp: Keypair) => {
+    const sig = await provider.connection.requestAirdrop(kp.publicKey, 2 * LAMPORTS_PER_SOL);
+    await provider.connection.confirmTransaction(sig);
+    const SEED = 10_000 * 1_000_000;
+    const ata = await createAccount(provider.connection, kp, usdcMint, kp.publicKey);
+    await mintTo(provider.connection, owner, usdcMint, ata, owner, SEED);
+    await vault.methods
+      .deposit(new anchor.BN(SEED))
+      .accounts({
+        vaultConfig: vaultConfigPda,
+        usdcVault: usdcVaultPda,
+        userUsdc: ata,
+        accountBalance: balancePda(kp.publicKey),
+        depositor: kp.publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([kp])
+      .rpc();
+  };
+  const bal = async (pk: PublicKey) =>
+    (await vault.account.accountBalance.fetch(balancePda(pk))).balance.toNumber();
+  const openPos = (kp: Keypair, sizeDelta: number, price: number) =>
+    program.methods
+      .openPosition(new anchor.BN(sizeDelta), new anchor.BN(price))
+      .accounts({
+        engineConfig: engineConfigPda,
+        market: marketPda,
+        position: positionPda(kp.publicKey),
+        trader: kp.publicKey,
+        operatorAccount: operatorPda,
+        operator: operatorKp.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .remainingAccounts(openCloseRA(kp.publicKey))
+      .signers([operatorKp])
+      .rpc();
+  const reducePos = (kp: Keypair, sizeDelta: number, price: number, ra?: any[]) =>
+    program.methods
+      .reducePosition(new anchor.BN(sizeDelta), new anchor.BN(price))
+      .accounts({
+        engineConfig: engineConfigPda,
+        market: marketPda,
+        position: positionPda(kp.publicKey),
+        operatorAccount: operatorPda,
+        operator: operatorKp.publicKey,
+      })
+      .remainingAccounts(ra ?? openCloseRA(kp.publicKey))
+      .signers([operatorKp])
+      .rpc();
+
   before(async () => {
     for (const target of [
       operatorKp.publicKey,
@@ -469,5 +522,180 @@ describe("perp_engine", () => {
       threw = true;
     }
     assert.isTrue(threw);
+  });
+
+  // ── reduce_position: settles a voluntary reduce ─────────────────────────
+  // open_position's reduce path strands the freed margin (additional_margin =
+  // required.saturating_sub(old_margin) is 0 on a reduce, so it returns no
+  // value — the confirmed High). reduce_position is the settling path for
+  // voluntary callers: it returns the freed margin (+ realized PnL) to the
+  // trader, mirroring close_position. open_position is left as-is for ADL.
+  it("refunds freed margin to the trader on a pure reduce via reduce_position", async () => {
+    const t = trader1.publicKey; // position is currently size 0 (closed earlier)
+
+    // Setup: fresh LONG 2 BTC @ 50000 → margin 5000 USDC locked.
+    await program.methods
+      .openPosition(new anchor.BN(2 * 100_000_000), new anchor.BN(50_000 * 1_000_000))
+      .accounts({
+        engineConfig: engineConfigPda,
+        market: marketPda,
+        position: positionPda(t),
+        trader: t,
+        operatorAccount: operatorPda,
+        operator: operatorKp.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .remainingAccounts(openCloseRA(t))
+      .signers([operatorKp])
+      .rpc();
+
+    const posOpen = await program.account.position.fetch(positionPda(t));
+    assert.equal(posOpen.size.toString(), (2 * 100_000_000).toString());
+    assert.equal(posOpen.margin.toString(), "5000000000");
+
+    const traderBefore = (
+      await vault.account.accountBalance.fetch(balancePda(t))
+    ).balance.toNumber();
+    const poolBefore = (
+      await vault.account.accountBalance.fetch(balancePda(engineAuthorityPda))
+    ).balance.toNumber();
+
+    // Reduce LONG 2 → 1 at fill == entry (zero PnL): frees exactly 2500 USDC.
+    await program.methods
+      .reducePosition(new anchor.BN(-1 * 100_000_000), new anchor.BN(50_000 * 1_000_000))
+      .accounts({
+        engineConfig: engineConfigPda,
+        market: marketPda,
+        position: positionPda(t),
+        operatorAccount: operatorPda,
+        operator: operatorKp.publicKey,
+      })
+      .remainingAccounts(openCloseRA(t))
+      .signers([operatorKp])
+      .rpc();
+
+    const pos = await program.account.position.fetch(positionPda(t));
+    assert.equal(pos.size.toString(), (1 * 100_000_000).toString());
+    assert.equal(pos.margin.toString(), "2500000000"); // residual margin stays locked
+
+    const traderAfter = (
+      await vault.account.accountBalance.fetch(balancePda(t))
+    ).balance.toNumber();
+    const poolAfter = (
+      await vault.account.accountBalance.fetch(balancePda(engineAuthorityPda))
+    ).balance.toNumber();
+
+    // CORRECT: the 2500 USDC of freed margin is refunded to the trader.
+    assert.equal(
+      traderAfter - traderBefore,
+      2_500_000_000,
+      "freed margin must be refunded to the trader on reduce",
+    );
+    assert.equal(
+      poolBefore - poolAfter,
+      2_500_000_000,
+      "engine_pool must release the freed margin",
+    );
+  });
+
+  it("reduce_position winner: refunds freed margin + realized profit", async () => {
+    const k = Keypair.generate();
+    await fundTrader(k);
+    await openPos(k, 2 * 100_000_000, 50_000 * 1_000_000); // LONG 2 BTC, margin 5000
+    const t0 = await bal(k.publicKey);
+    const p0 = await bal(engineAuthorityPda);
+    await reducePos(k, -1 * 100_000_000, 52_000 * 1_000_000); // close 1 @ +2000
+    const pos = await program.account.position.fetch(positionPda(k.publicKey));
+    assert.equal(pos.size.toString(), (1 * 100_000_000).toString());
+    assert.equal(pos.margin.toString(), "2500000000");
+    assert.equal((await bal(k.publicKey)) - t0, 4_500_000_000); // freed 2500 + pnl 2000
+    assert.equal(p0 - (await bal(engineAuthorityPda)), 4_500_000_000);
+  });
+
+  it("reduce_position loser-partial: refunds freed margin minus loss", async () => {
+    const k = Keypair.generate();
+    await fundTrader(k);
+    await openPos(k, 2 * 100_000_000, 50_000 * 1_000_000);
+    const t0 = await bal(k.publicKey);
+    const p0 = await bal(engineAuthorityPda);
+    await reducePos(k, -1 * 100_000_000, 49_000 * 1_000_000); // close 1 @ -1000
+    assert.equal((await bal(k.publicKey)) - t0, 1_500_000_000); // freed 2500 - loss 1000
+    assert.equal(p0 - (await bal(engineAuthorityPda)), 1_500_000_000);
+  });
+
+  it("reduce_position rejects an increase (NotAReduce)", async () => {
+    const k = Keypair.generate();
+    await fundTrader(k);
+    await openPos(k, 1 * 100_000_000, 50_000 * 1_000_000);
+    let threw = false;
+    try {
+      await reducePos(k, 1 * 100_000_000, 50_000 * 1_000_000);
+    } catch (e: any) {
+      threw = true;
+    }
+    assert.isTrue(threw);
+  });
+
+  it("reduce_position reverts when vault accounts are missing", async () => {
+    const k = Keypair.generate();
+    await fundTrader(k);
+    await openPos(k, 2 * 100_000_000, 50_000 * 1_000_000);
+    let threw = false;
+    try {
+      await reducePos(k, -1 * 100_000_000, 50_000 * 1_000_000, []); // empty remainingAccounts
+    } catch (e: any) {
+      threw = true;
+    }
+    assert.isTrue(threw);
+  });
+
+  it("reduce_position flip to smaller: settles old side, locks new side", async () => {
+    const k = Keypair.generate();
+    await fundTrader(k);
+    await openPos(k, 2 * 100_000_000, 50_000 * 1_000_000); // LONG 2 BTC, margin 5000
+    const t0 = await bal(k.publicKey);
+    const p0 = await bal(engineAuthorityPda);
+    await reducePos(k, -3 * 100_000_000, 52_000 * 1_000_000); // → SHORT 1 BTC
+    const pos = await program.account.position.fetch(positionPda(k.publicKey));
+    assert.equal(pos.size.toString(), (-1 * 100_000_000).toString());
+    assert.equal(pos.margin.toString(), "2600000000"); // 1 BTC @ 52000 * 5%
+    // payout old 9000 (5000 + 4000) - lock new 2600 = net +6400 to trader
+    assert.equal((await bal(k.publicKey)) - t0, 6_400_000_000);
+    assert.equal(p0 - (await bal(engineAuthorityPda)), 6_400_000_000);
+  });
+
+  it("reduce_position flip to larger: net debits the trader for the new side", async () => {
+    const k = Keypair.generate();
+    await fundTrader(k);
+    await openPos(k, -1 * 100_000_000, 50_000 * 1_000_000); // SHORT 1 BTC, margin 2500
+    const t0 = await bal(k.publicKey);
+    const p0 = await bal(engineAuthorityPda);
+    await reducePos(k, 3 * 100_000_000, 50_000 * 1_000_000); // → LONG 2 BTC, pnl 0
+    const pos = await program.account.position.fetch(positionPda(k.publicKey));
+    assert.equal(pos.size.toString(), (2 * 100_000_000).toString());
+    assert.equal(pos.margin.toString(), "5000000000"); // 2 BTC @ 50000 * 5%
+    // payout old 2500 - lock new 5000 = net -2500 (trader pays)
+    assert.equal(t0 - (await bal(k.publicKey)), 2_500_000_000);
+    assert.equal((await bal(engineAuthorityPda)) - p0, 2_500_000_000);
+  });
+
+  it("reduce_position flip with loss > old margin: bad debt, locks new side", async () => {
+    const k = Keypair.generate();
+    await fundTrader(k);
+    await openPos(k, 1 * 100_000_000, 50_000 * 1_000_000); // LONG 1 BTC, margin 2500
+    const t0 = await bal(k.publicKey);
+    let badDebt: any = null;
+    const listener = program.addEventListener("badDebt", (ev: any) => {
+      badDebt = ev;
+    });
+    await reducePos(k, -2 * 100_000_000, 45_000 * 1_000_000); // → SHORT 1 BTC, loss 5000
+    await new Promise((r) => setTimeout(r, 1500));
+    await program.removeEventListener(listener);
+    const pos = await program.account.position.fetch(positionPda(k.publicKey));
+    assert.equal(pos.size.toString(), (-1 * 100_000_000).toString());
+    assert.equal(pos.margin.toString(), "2250000000"); // 1 BTC @ 45000 * 5%
+    assert.equal(t0 - (await bal(k.publicKey)), 2_250_000_000); // payout 0, lock new 2250
+    assert.isNotNull(badDebt);
+    assert.equal(badDebt.amount.toString(), "2500000000");
   });
 });
