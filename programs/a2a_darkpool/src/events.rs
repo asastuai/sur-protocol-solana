@@ -14,6 +14,7 @@ pub struct IntentPosted {
     pub min_price: u64,
     pub max_price: u64,
     pub expires_at: i64,
+    pub context_commitment: [u8; 32],
 }
 
 #[event]
@@ -27,6 +28,7 @@ pub struct ResponsePosted {
     pub intent_id: u64,
     pub responder: Pubkey,
     pub price: u64,
+    pub context_commitment: [u8; 32],
 }
 
 #[event]
@@ -44,6 +46,14 @@ pub struct A2ATradeSettled {
     pub size: u64,
     pub price: u64,
     pub timestamp: i64,
+    /// Proof-of-context: the canonical market price vintage this trade settled
+    /// against (`Market.last_price_update`), for indexer/audit.
+    pub price_as_of: i64,
+}
+
+#[event]
+pub struct FreshnessBudgetUpdated {
+    pub max_settlement_price_age: i64,
 }
 
 #[event]

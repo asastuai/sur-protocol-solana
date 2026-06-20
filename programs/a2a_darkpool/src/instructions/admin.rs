@@ -3,7 +3,7 @@ use anchor_lang::solana_program::keccak;
 
 use crate::errors::DarkPoolError;
 use crate::events::{
-    FeeBpsUpdated, FeeRecipientUpdated, LargeTradeMinReputationUpdated,
+    FeeBpsUpdated, FeeRecipientUpdated, FreshnessBudgetUpdated, LargeTradeMinReputationUpdated,
     LargeTradeThresholdUpdated, OwnershipTransferStarted, OwnershipTransferred, ParameterBump,
     PauseStatusChanged,
 };
@@ -211,6 +211,93 @@ pub fn set_large_trade_min_reputation(ctx: Context<AdminUpdate>, min_rep: u64) -
         param_id: keccak::hash(b"A2ADarkPool.largeTradeMinReputation").to_bytes(),
         old_value: old.to_le_bytes().to_vec(),
         new_value: min_rep.to_le_bytes().to_vec(),
+        effective_slot: clock.slot,
+        admin: ctx.accounts.owner.key(),
+    });
+    Ok(())
+}
+
+// ============================================================
+//        FRESHNESS CONFIG (proof-of-context f_i budget)
+// ============================================================
+// Sidecar PDA so adding the freshness budget does not change the existing
+// DarkPoolConfig layout. Created once after deploy via init_freshness_config.
+
+#[derive(Accounts)]
+pub struct InitFreshnessConfig<'info> {
+    #[account(
+        seeds = [DarkPoolConfig::SEED],
+        bump = config.bump,
+        has_one = owner @ DarkPoolError::NotOwner,
+    )]
+    pub config: Account<'info, DarkPoolConfig>,
+
+    #[account(
+        init,
+        payer = owner,
+        space = FreshnessConfig::SIZE,
+        seeds = [FreshnessConfig::SEED],
+        bump,
+    )]
+    pub freshness_config: Account<'info, FreshnessConfig>,
+
+    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+pub fn init_freshness_config(
+    ctx: Context<InitFreshnessConfig>,
+    max_settlement_price_age: i64,
+) -> Result<()> {
+    require!(
+        max_settlement_price_age > 0,
+        DarkPoolError::InvalidFreshnessBudget
+    );
+    let fc = &mut ctx.accounts.freshness_config;
+    fc.bump = ctx.bumps.freshness_config;
+    fc.max_settlement_price_age = max_settlement_price_age;
+
+    emit!(FreshnessBudgetUpdated {
+        max_settlement_price_age,
+    });
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct SetFreshnessBudget<'info> {
+    #[account(
+        seeds = [DarkPoolConfig::SEED],
+        bump = config.bump,
+        has_one = owner @ DarkPoolError::NotOwner,
+    )]
+    pub config: Account<'info, DarkPoolConfig>,
+
+    #[account(
+        mut,
+        seeds = [FreshnessConfig::SEED],
+        bump = freshness_config.bump,
+    )]
+    pub freshness_config: Account<'info, FreshnessConfig>,
+
+    pub owner: Signer<'info>,
+}
+
+pub fn set_max_settlement_price_age(ctx: Context<SetFreshnessBudget>, secs: i64) -> Result<()> {
+    require!(secs > 0, DarkPoolError::InvalidFreshnessBudget);
+
+    let old = ctx.accounts.freshness_config.max_settlement_price_age;
+    ctx.accounts.freshness_config.max_settlement_price_age = secs;
+
+    let clock = Clock::get()?;
+    emit!(FreshnessBudgetUpdated {
+        max_settlement_price_age: secs,
+    });
+    emit!(ParameterBump {
+        param_id: keccak::hash(b"A2ADarkPool.maxSettlementPriceAge").to_bytes(),
+        old_value: old.to_le_bytes().to_vec(),
+        new_value: secs.to_le_bytes().to_vec(),
         effective_slot: clock.slot,
         admin: ctx.accounts.owner.key(),
     });

@@ -64,4 +64,16 @@ pub enum DarkPoolError {
 
     #[msg("Math overflow")]
     MathOverflow,
+
+    #[msg("Market price is stale (proof-of-context f_i): now - last_price_update exceeds the freshness budget")]
+    StalePrice,
+
+    #[msg("engine_market account does not match the intent's market_id")]
+    MarketAccountMismatch,
+
+    #[msg("Market price timestamp is in the future")]
+    FuturePrice,
+
+    #[msg("Invalid freshness budget (must be > 0)")]
+    InvalidFreshnessBudget,
 }

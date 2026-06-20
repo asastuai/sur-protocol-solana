@@ -55,7 +55,12 @@ pub struct PostResponse<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub(crate) fn handler(ctx: Context<PostResponse>, price: u64, duration: i64) -> Result<()> {
+pub(crate) fn handler(
+    ctx: Context<PostResponse>,
+    price: u64,
+    duration: i64,
+    context_commitment: [u8; 32],
+) -> Result<()> {
     let config = &mut ctx.accounts.config;
     require!(!config.paused, DarkPoolError::PausedError);
 
@@ -112,6 +117,7 @@ pub(crate) fn handler(ctx: Context<PostResponse>, price: u64, duration: i64) -> 
     response.created_at = clock.unix_timestamp;
     response.expires_at = response_expires_at;
     response.status = ResponseStatus::Pending;
+    response.context_commitment = context_commitment;
 
     config.next_response_id = config
         .next_response_id
@@ -123,6 +129,7 @@ pub(crate) fn handler(ctx: Context<PostResponse>, price: u64, duration: i64) -> 
         intent_id: intent.id,
         responder: ctx.accounts.responder.key(),
         price,
+        context_commitment,
     });
 
     Ok(())
