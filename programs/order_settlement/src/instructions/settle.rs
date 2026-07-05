@@ -418,7 +418,14 @@ fn settle_trade_inner(ctx: &mut Context<SettleOne>, trade: &MatchedTrade) -> Res
 
     // v0.3.1 wiring: forward engine_authority + vault accounts so engine's
     // margin-lock CPI fires from settle_one too. src_balance is per-side.
-    invoke_engine_open_position(
+    //
+    // Routing (stranded-margin High fix): a delta that shrinks or flips the
+    // trader's existing position must settle the freed margin + realized PnL
+    // back out — open_position only moves value INBOUND. Dispatch per side:
+    //   fresh open / same-sign increase -> open_position
+    //   exact full close               -> close_position
+    //   partial reduce or flip         -> reduce_position
+    route_engine_trade(
         &ctx.accounts.perp_engine_program,
         &ctx.accounts.engine_config,
         &ctx.accounts.engine_market,
@@ -431,13 +438,13 @@ fn settle_trade_inner(ctx: &mut Context<SettleOne>, trade: &MatchedTrade) -> Res
         &ctx.accounts.perp_vault_program,
         &ctx.accounts.vault_config,
         &ctx.accounts.engine_vault_operator,
-        &ctx.accounts.maker_balance,         // src_balance (maker margin)
-        &ctx.accounts.engine_pool_balance,   // dst pool
+        &ctx.accounts.maker_balance,         // maker margin src / settle dst
+        &ctx.accounts.engine_pool_balance,   // pool
         maker_delta,
         trade.execution_price,
         auth_seeds,
     )?;
-    invoke_engine_open_position(
+    route_engine_trade(
         &ctx.accounts.perp_engine_program,
         &ctx.accounts.engine_config,
         &ctx.accounts.engine_market,
@@ -450,8 +457,8 @@ fn settle_trade_inner(ctx: &mut Context<SettleOne>, trade: &MatchedTrade) -> Res
         &ctx.accounts.perp_vault_program,
         &ctx.accounts.vault_config,
         &ctx.accounts.engine_vault_operator,
-        &ctx.accounts.taker_balance,         // src_balance (taker margin)
-        &ctx.accounts.engine_pool_balance,   // dst pool
+        &ctx.accounts.taker_balance,         // taker margin src / settle dst
+        &ctx.accounts.engine_pool_balance,   // pool
         taker_delta,
         trade.execution_price,
         auth_seeds,
@@ -469,6 +476,78 @@ fn settle_trade_inner(ctx: &mut Context<SettleOne>, trade: &MatchedTrade) -> Res
         timestamp: now,
     });
     Ok(())
+}
+
+/// Dispatch one side's engine CPI by what the delta does to the CURRENT
+/// position (read raw at call time, so a prior CPI in this same tx is seen):
+///   no position / same-sign increase -> open_position (margin lock inbound)
+///   new_size == 0                    -> close_position (full settle outbound)
+///   shrink or flip                   -> reduce_position (delta settle outbound)
+#[allow(clippy::too_many_arguments)]
+fn route_engine_trade<'info>(
+    perp_engine_program: &UncheckedAccount<'info>,
+    engine_config: &UncheckedAccount<'info>,
+    engine_market: &UncheckedAccount<'info>,
+    position: &UncheckedAccount<'info>,
+    trader: &AccountInfo<'info>,
+    engine_operator_account: &UncheckedAccount<'info>,
+    authority: &UncheckedAccount<'info>,
+    system_program: &AccountInfo<'info>,
+    engine_authority: &UncheckedAccount<'info>,
+    vault_program: &UncheckedAccount<'info>,
+    vault_config: &UncheckedAccount<'info>,
+    engine_vault_operator: &UncheckedAccount<'info>,
+    trader_balance: &UncheckedAccount<'info>,
+    engine_pool_balance: &UncheckedAccount<'info>,
+    size_delta: i64,
+    fill_price: u64,
+    auth_seeds: &[&[u8]],
+) -> Result<()> {
+    let cur_size = read_position_size(position);
+    let new_size = cur_size
+        .checked_add(size_delta)
+        .ok_or(OrderSettlementError::MathOverflow)?;
+
+    if cur_size == 0 || (cur_size > 0) == (size_delta > 0) {
+        invoke_engine_open_position(
+            perp_engine_program,
+            engine_config,
+            engine_market,
+            position,
+            trader,
+            engine_operator_account,
+            authority,
+            system_program,
+            engine_authority,
+            vault_program,
+            vault_config,
+            engine_vault_operator,
+            trader_balance,
+            engine_pool_balance,
+            size_delta,
+            fill_price,
+            auth_seeds,
+        )
+    } else {
+        let delta = if new_size == 0 { None } else { Some(size_delta) };
+        invoke_engine_reduce_or_close(
+            perp_engine_program,
+            engine_config,
+            engine_market,
+            position,
+            engine_operator_account,
+            authority,
+            engine_authority,
+            vault_program,
+            vault_config,
+            engine_vault_operator,
+            trader_balance,
+            engine_pool_balance,
+            delta,
+            fill_price,
+            auth_seeds,
+        )
+    }
 }
 
 fn bind_or_check_page(
