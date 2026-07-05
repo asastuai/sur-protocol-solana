@@ -12,10 +12,13 @@ verify PnL, close, and withdraw. If every step below succeeds, Phase 9 is done.
 | Item              | Value                                                    |
 | ----------------- | -------------------------------------------------------- |
 | Deployer wallet   | `4gAdo7R69XgZJ2QazB1N2o21nfY2gjto9KijUDzjg6kv`           |
-| Test USDC mint    | `531Kuibtkhht9sZiqaoYRGm8c6agQz9iScZQEDctokEn` (6 dp)   |
+| Test USDC mint    | `B2LJ35rfJbQmhBwdhpzovUfLM5WhFgUNSYVxtDQ8CPnQ` (6 dp)   |
 | Markets           | `BTC-USD` @ $65k, `SOL-USD` @ $150, `ETH-USD` @ $3.5k    |
 | Cluster           | Solana **devnet**                                        |
 | RPC               | `https://api.devnet.solana.com`                          |
+
+> Re-deployed 2026-06-30 (fresh program IDs + fresh test-USDC mint; see
+> `scripts/devnet-state.json` for the live state and init step log).
 
 > The "test USDC" is **not** circle/canonical USDC. The deployer is the
 > mint authority and can print more for testing. Anyone who imports it

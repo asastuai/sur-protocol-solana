@@ -1,9 +1,10 @@
 # SUR Devnet Points System — Design
 
-> Status: **build-ahead.** The off-chain stack below is being built while the
-> on-chain re-deploy is blocked on devnet's SBPFv3 activation (see
-> `scripts/check-sbpfv3.sh`). It cannot be tested end-to-end until SUR programs
-> are re-deployed and emitting events on devnet.
+> Status: **unblocked — programs live.** The 11 SUR programs were deployed and
+> initialized on devnet on 2026-06-30 and are emitting events, so this stack
+> can now be wired and tested end-to-end. (The earlier "blocked on SBPFv3"
+> premise was a misdiagnosis — the toolchain emits SBPF v0 by default, which
+> devnet accepts today; see the correction note in `scripts/check-sbpfv3.sh`.)
 
 ## Goal
 
