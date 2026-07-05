@@ -5,6 +5,43 @@ use anchor_lang::solana_program::{
     program::invoke_signed,
 };
 
+use crate::errors::EngineError;
+use crate::state::EngineConfig;
+
+// ============================================================
+//  Account-binding guards (audit Gate 0a: C-1/H-2/N-1/N-2/N-4 fix)
+// ============================================================
+// The manual invoke_signed design forwards value-bearing accounts via
+// remaining_accounts as UncheckedAccount, so the engine MUST re-derive their
+// canonical identity here — otherwise a caller (incl. the unprivileged darkpool
+// path) substitutes a victim's balance and the vault honors it (confused deputy).
+
+/// Assert `account` is the canonical perp_vault AccountBalance PDA for `trader`.
+pub fn assert_canonical_balance(
+    account: &AccountInfo,
+    trader: &Pubkey,
+    perp_vault: &Pubkey,
+) -> Result<()> {
+    let (expected, _bump) = Pubkey::find_program_address(
+        &[EngineConfig::VAULT_BALANCE_SEED, trader.as_ref()],
+        perp_vault,
+    );
+    require!(account.key() == expected, EngineError::InvalidParam);
+    Ok(())
+}
+
+/// Assert `authority` is the canonical engine_authority PDA — the only signer
+/// allowed to drive vault CPIs on the engine's behalf.
+pub fn assert_engine_authority(authority: &AccountInfo, authority_bump: u8) -> Result<()> {
+    let expected = Pubkey::create_program_address(
+        &[EngineConfig::AUTHORITY_SEED, &[authority_bump]],
+        &crate::ID,
+    )
+    .map_err(|_| EngineError::InvalidParam)?;
+    require!(authority.key() == expected, EngineError::InvalidParam);
+    Ok(())
+}
+
 /// Anchor instruction discriminator: first 8 bytes of sha256("global:<name>").
 pub fn anchor_discriminator(method_name: &str) -> [u8; 8] {
     let mut full_name = String::with_capacity(7 + method_name.len());

@@ -128,6 +128,15 @@ pub(crate) fn handler(ctx: Context<ClosePosition>, fill_price: u64) -> Result<()
                 vault_program.key() == cfg.perp_vault,
                 EngineError::InvalidParam
             );
+            // Gate 0a binding (N-2 fix): payout pool + trader dest + authority canonical.
+            require!(cfg.engine_pool != Pubkey::default(), EngineError::InvalidParam);
+            require!(engine_pool_balance.key() == cfg.engine_pool, EngineError::InvalidParam);
+            crate::instructions::cpi_util::assert_canonical_balance(
+                trader_balance,
+                &trader,
+                &cfg.perp_vault,
+            )?;
+            crate::instructions::cpi_util::assert_engine_authority(authority, cfg.authority_bump)?;
 
             invoke_vault_internal_transfer_raw(
                 vault_program,
@@ -159,6 +168,15 @@ pub(crate) fn handler(ctx: Context<ClosePosition>, fill_price: u64) -> Result<()
                     vault_program.key() == cfg.perp_vault,
                     EngineError::InvalidParam
                 );
+                // Gate 0a binding (N-2 fix): payout pool + trader dest + authority canonical.
+                require!(cfg.engine_pool != Pubkey::default(), EngineError::InvalidParam);
+                require!(engine_pool_balance.key() == cfg.engine_pool, EngineError::InvalidParam);
+                crate::instructions::cpi_util::assert_canonical_balance(
+                    trader_balance,
+                    &trader,
+                    &cfg.perp_vault,
+                )?;
+                crate::instructions::cpi_util::assert_engine_authority(authority, cfg.authority_bump)?;
 
                 invoke_vault_internal_transfer_raw(
                     vault_program,

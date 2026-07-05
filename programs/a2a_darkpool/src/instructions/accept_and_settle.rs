@@ -224,6 +224,37 @@ pub(crate) fn handler(ctx: Context<AcceptAndSettle>) -> Result<()> {
         DarkPoolError::SelfTrade
     );
 
+    // ---- Gate 0b binding (audit C-1 fee-leg + N-11 fix) ----
+    // Bind the value-bearing vault balances to the RESOLVED buyer/seller/fee_recipient
+    // and engine_market to intent.market_id. Without this a permissionless intent_creator
+    // substitutes a victim's balance (fee drain) or a wrong market, and the CPI — signed
+    // by darkpool_authority (a registered operator) — would be honored downstream.
+    {
+        let pv = config.perp_vault;
+        let (exp_buyer, _) = Pubkey::find_program_address(&[b"balance", buyer.as_ref()], &pv);
+        require!(
+            ctx.accounts.buyer_balance.key() == exp_buyer,
+            DarkPoolError::InvalidAccount
+        );
+        let (exp_seller, _) = Pubkey::find_program_address(&[b"balance", seller.as_ref()], &pv);
+        require!(
+            ctx.accounts.seller_balance.key() == exp_seller,
+            DarkPoolError::InvalidAccount
+        );
+        let (exp_fee, _) =
+            Pubkey::find_program_address(&[b"balance", config.fee_recipient.as_ref()], &pv);
+        require!(
+            ctx.accounts.fee_recipient_balance.key() == exp_fee,
+            DarkPoolError::InvalidAccount
+        );
+        let (exp_market, _) =
+            Pubkey::find_program_address(&[b"market", market_id.as_ref()], &config.perp_engine);
+        require!(
+            ctx.accounts.engine_market.key() == exp_market,
+            DarkPoolError::InvalidAccount
+        );
+    }
+
     // ---- CEI: status flips BEFORE external calls ----
     intent.status = IntentStatus::Filled;
     intent.filled_response_id = response_id;
@@ -250,10 +281,18 @@ pub(crate) fn handler(ctx: Context<AcceptAndSettle>) -> Result<()> {
 
     let buyer_size_delta: i64 = i64::try_from(size).map_err(|_| DarkPoolError::MathOverflow)?;
 
-    // ---- CPI #1: engine.open_position(buyer, +size, price) ----
+    // ---- CPI #1: engine trade (buyer, +size, price) ----
     // Forward vault accounts so engine's internal margin-lock CPI fires
     // (v0.3.1 wiring; engine open_position.rs file header for order).
-    invoke_engine_open_position(
+    //
+    // Routing (stranded-margin High fix): a fill that shrinks or flips an
+    // agent's existing position must settle the freed margin + realized PnL
+    // back to its balance — open_position only moves value INBOUND. Each side
+    // dispatches independently on its CURRENT position:
+    //   fresh open / same-sign increase -> open_position
+    //   exact full close               -> close_position
+    //   partial reduce or flip         -> reduce_position
+    route_engine_trade(
         &ctx.accounts.perp_engine_program,
         &ctx.accounts.engine_config,
         &ctx.accounts.engine_market,
@@ -267,15 +306,15 @@ pub(crate) fn handler(ctx: Context<AcceptAndSettle>) -> Result<()> {
         &ctx.accounts.perp_vault_program,
         &ctx.accounts.vault_config,
         &ctx.accounts.engine_vault_operator,
-        &ctx.accounts.buyer_balance,        // src_balance for buyer's margin
-        &ctx.accounts.engine_pool_balance,  // dst pool
+        &ctx.accounts.buyer_balance,        // buyer margin src / settle dst
+        &ctx.accounts.engine_pool_balance,  // pool
         buyer_size_delta,
         price,
         auth_seeds,
     )?;
 
-    // ---- CPI #2: engine.open_position(seller, -size, price) ----
-    invoke_engine_open_position(
+    // ---- CPI #2: engine trade (seller, -size, price) ----
+    route_engine_trade(
         &ctx.accounts.perp_engine_program,
         &ctx.accounts.engine_config,
         &ctx.accounts.engine_market,
@@ -289,8 +328,8 @@ pub(crate) fn handler(ctx: Context<AcceptAndSettle>) -> Result<()> {
         &ctx.accounts.perp_vault_program,
         &ctx.accounts.vault_config,
         &ctx.accounts.engine_vault_operator,
-        &ctx.accounts.seller_balance,       // src_balance for seller's margin
-        &ctx.accounts.engine_pool_balance,  // dst pool
+        &ctx.accounts.seller_balance,       // seller margin src / settle dst
+        &ctx.accounts.engine_pool_balance,  // pool
         -buyer_size_delta,
         price,
         auth_seeds,
@@ -429,6 +468,166 @@ fn invoke_engine_open_position<'info>(
             vault_config.to_account_info(),
             engine_vault_operator.to_account_info(),
             src_balance.to_account_info(),
+            engine_pool_balance.to_account_info(),
+            // program last
+            perp_engine_program.to_account_info(),
+        ],
+        &[auth_seeds],
+    )
+    .map_err(Into::into)
+}
+
+/// Raw read of a perp_engine `Position.size`: i64 LE at byte offset 73
+/// (8 disc + 1 bump + 32 market_id + 32 trader). Returns 0 when the account
+/// is not yet initialized — no position, so the trade is a fresh open.
+fn read_position_size(position: &UncheckedAccount) -> i64 {
+    match position.try_borrow_data() {
+        Ok(data) if data.len() >= 81 => i64::from_le_bytes(data[73..81].try_into().unwrap()),
+        _ => 0,
+    }
+}
+
+/// Dispatch one side's engine CPI by what the delta does to the CURRENT
+/// position (read raw at call time, so a prior CPI in this same tx is seen):
+///   no position / same-sign increase -> open_position (margin lock inbound)
+///   new_size == 0                    -> close_position (full settle outbound)
+///   shrink or flip                   -> reduce_position (delta settle outbound)
+#[allow(clippy::too_many_arguments)]
+fn route_engine_trade<'info>(
+    perp_engine_program: &UncheckedAccount<'info>,
+    engine_config: &UncheckedAccount<'info>,
+    engine_market: &UncheckedAccount<'info>,
+    position: &UncheckedAccount<'info>,
+    trader: &UncheckedAccount<'info>,
+    engine_operator_account: &UncheckedAccount<'info>,
+    darkpool_authority: &UncheckedAccount<'info>,
+    system_program: &AccountInfo<'info>,
+    engine_authority: &UncheckedAccount<'info>,
+    vault_program: &UncheckedAccount<'info>,
+    vault_config: &UncheckedAccount<'info>,
+    engine_vault_operator: &UncheckedAccount<'info>,
+    trader_balance: &UncheckedAccount<'info>,
+    engine_pool_balance: &UncheckedAccount<'info>,
+    size_delta: i64,
+    fill_price: u64,
+    auth_seeds: &[&[u8]],
+) -> Result<()> {
+    let cur_size = read_position_size(position);
+    let new_size = cur_size
+        .checked_add(size_delta)
+        .ok_or(DarkPoolError::MathOverflow)?;
+
+    if cur_size == 0 || (cur_size > 0) == (size_delta > 0) {
+        invoke_engine_open_position(
+            perp_engine_program,
+            engine_config,
+            engine_market,
+            position,
+            trader,
+            engine_operator_account,
+            darkpool_authority,
+            system_program,
+            engine_authority,
+            vault_program,
+            vault_config,
+            engine_vault_operator,
+            trader_balance,
+            engine_pool_balance,
+            size_delta,
+            fill_price,
+            auth_seeds,
+        )
+    } else {
+        let delta = if new_size == 0 { None } else { Some(size_delta) };
+        invoke_engine_reduce_or_close(
+            perp_engine_program,
+            engine_config,
+            engine_market,
+            position,
+            engine_operator_account,
+            darkpool_authority,
+            engine_authority,
+            vault_program,
+            vault_config,
+            engine_vault_operator,
+            trader_balance,
+            engine_pool_balance,
+            delta,
+            fill_price,
+            auth_seeds,
+        )
+    }
+}
+
+/// perp_engine.reduce_position / close_position CPI — both share one account
+/// shape (engine_config, market, position, operator_account, operator signer
+/// + the 6 vault remaining_accounts). `Some(delta)` -> reduce_position(delta,
+/// fill_price); `None` -> close_position(fill_price). Unlike open_position
+/// these settle OUTBOUND value (freed margin + realized PnL) to trader_balance.
+#[allow(clippy::too_many_arguments)]
+fn invoke_engine_reduce_or_close<'info>(
+    perp_engine_program: &UncheckedAccount<'info>,
+    engine_config: &UncheckedAccount<'info>,
+    engine_market: &UncheckedAccount<'info>,
+    position: &UncheckedAccount<'info>,
+    engine_operator_account: &UncheckedAccount<'info>,
+    darkpool_authority: &UncheckedAccount<'info>,
+    engine_authority: &UncheckedAccount<'info>,
+    vault_program: &UncheckedAccount<'info>,
+    vault_config: &UncheckedAccount<'info>,
+    engine_vault_operator: &UncheckedAccount<'info>,
+    trader_balance: &UncheckedAccount<'info>,
+    engine_pool_balance: &UncheckedAccount<'info>,
+    size_delta: Option<i64>,
+    fill_price: u64,
+    auth_seeds: &[&[u8]],
+) -> Result<()> {
+    let mut data = Vec::with_capacity(8 + 8 + 8);
+    match size_delta {
+        Some(delta) => {
+            data.extend_from_slice(&anchor_discriminator("reduce_position"));
+            data.extend_from_slice(&delta.to_le_bytes());
+            data.extend_from_slice(&fill_price.to_le_bytes());
+        }
+        None => {
+            data.extend_from_slice(&anchor_discriminator("close_position"));
+            data.extend_from_slice(&fill_price.to_le_bytes());
+        }
+    }
+
+    let ix = Instruction {
+        program_id: perp_engine_program.key(),
+        accounts: vec![
+            AccountMeta::new_readonly(engine_config.key(), false),
+            AccountMeta::new(engine_market.key(), false),
+            AccountMeta::new(position.key(), false),
+            AccountMeta::new_readonly(engine_operator_account.key(), false),
+            AccountMeta::new_readonly(darkpool_authority.key(), true),
+            // ---- engine remaining_accounts (order: reduce/close_position.rs file header) ----
+            AccountMeta::new_readonly(engine_authority.key(), false),
+            AccountMeta::new_readonly(vault_program.key(), false),
+            AccountMeta::new_readonly(vault_config.key(), false),
+            AccountMeta::new_readonly(engine_vault_operator.key(), false),
+            AccountMeta::new(trader_balance.key(), false),
+            AccountMeta::new(engine_pool_balance.key(), false),
+        ],
+        data,
+    };
+
+    invoke_signed(
+        &ix,
+        &[
+            engine_config.to_account_info(),
+            engine_market.to_account_info(),
+            position.to_account_info(),
+            engine_operator_account.to_account_info(),
+            darkpool_authority.to_account_info(),
+            // remaining
+            engine_authority.to_account_info(),
+            vault_program.to_account_info(),
+            vault_config.to_account_info(),
+            engine_vault_operator.to_account_info(),
+            trader_balance.to_account_info(),
             engine_pool_balance.to_account_info(),
             // program last
             perp_engine_program.to_account_info(),

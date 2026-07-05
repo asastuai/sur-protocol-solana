@@ -79,6 +79,14 @@ pub mod perp_engine {
         instructions::close_position::handler(ctx, fill_price)
     }
 
+    pub fn reduce_position(
+        ctx: Context<ReducePosition>,
+        size_delta: i64,
+        fill_price: u64,
+    ) -> Result<()> {
+        instructions::reduce_position::handler(ctx, size_delta, fill_price)
+    }
+
     pub fn bootstrap_engine_pool(ctx: Context<BootstrapEnginePool>, amount: u64) -> Result<()> {
         instructions::bootstrap_pool::handler(ctx, amount)
     }
@@ -109,5 +117,12 @@ pub mod perp_engine {
 
     pub fn accept_ownership(ctx: Context<AcceptOwnership>) -> Result<()> {
         instructions::admin::accept_ownership(ctx)
+    }
+
+    pub fn set_insurance_fund_balance(
+        ctx: Context<AdminUpdate>,
+        balance: Pubkey,
+    ) -> Result<()> {
+        instructions::admin::set_insurance_fund_balance(ctx, balance)
     }
 }

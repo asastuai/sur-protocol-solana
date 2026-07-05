@@ -80,10 +80,11 @@ Backward-compat hatch retained but unused: engine still tolerates empty remainin
 - `clients/web` — frontend (swap wagmi/viem → @solana/web3.js + @coral-xyz/anchor)
 - Tag: `v0.5.0`
 
-## Phase 5 — Devnet integration ⏳
-- End-to-end devnet deploy with real Pyth feeds + USDC dev mint
-- 11-program deploy (deployer wallet `4gAdo7R69XgZJ2QazB1N2o21nfY2gjto9KijUDzjg6kv` needs ~30 SOL devnet)
-- Stress tests, edge case coverage, failure-mode testing
+## Phase 5 — Devnet integration ✅ (deploy 2026-06-30)
+- ✅ 11-program deploy to devnet under deployer `4gAdo7R69XgZJ2QazB1N2o21nfY2gjto9KijUDzjg6kv` (27.59 SOL rent, SBPF v0 binaries — the "blocked on SBPFv3" premise was a misdiagnosis, see `scripts/check-sbpfv3.sh`)
+- ✅ `devnet-init.ts`: 34 steps, 0 failures — USDC dev mint `B2LJ35rfJbQmhBwdhpzovUfLM5WhFgUNSYVxtDQ8CPnQ`, 3 markets (BTC/SOL/ETH), operators wired, pools bootstrapped, prices seeded
+- ⏳ Real Pyth feeds (current: operator-pushed prices)
+- ⏳ Stress tests, edge case coverage, failure-mode testing on devnet
 - Tag: `v0.6.0`
 
 ## Phase 6 — Audit + mainnet ⏳

@@ -6,6 +6,7 @@ pub mod liquidate_position;
 pub mod market;
 pub mod open_position;
 pub mod operator_admin;
+pub mod reduce_position;
 pub mod update_mark_price;
 
 pub use admin::*;
@@ -15,4 +16,5 @@ pub use liquidate_position::*;
 pub use market::*;
 pub use open_position::*;
 pub use operator_admin::*;
+pub use reduce_position::*;
 pub use update_mark_price::*;

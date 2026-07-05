@@ -1070,4 +1070,77 @@ describe("order_settlement", () => {
       .accounts({ config: osConfigPda, owner: owner.publicKey })
       .rpc();
   });
+
+  // ============================================================
+  // REDUCE ROUTING — stranded-margin High fix
+  // ============================================================
+  // Cumulative state: maker -3 BTC short (margin $7500), taker +2 BTC long
+  // (margin $5000). A 1 BTC counter-trade (maker buys, taker sells) reduces
+  // BOTH sides. Before the routing fix this went through engine.open_position
+  // — inbound-only — so the freed $2500/side stayed stranded in engine_pool.
+  // Now each side routes to engine.reduce_position and the freed margin
+  // settles back (PnL 0 at the unchanged $50K price).
+  it("reduce trade routes to engine.reduce_position and settles freed margin", async () => {
+    const now = BigInt(Math.floor(Date.now() / 1000));
+    const m = makeSigned(maker, {
+      isLong: true, // maker BUYS against its -3 short -> reduce
+      size: 1n * SIZE_PRECISION,
+      price: 50_000n * PRICE_PRECISION,
+      nonce: 11n,
+      expiry: now + 600n,
+    });
+    const t = makeSigned(taker, {
+      isLong: false, // taker SELLS against its +2 long -> reduce
+      size: 1n * SIZE_PRECISION,
+      price: 50_000n * PRICE_PRECISION,
+      nonce: 10n,
+      expiry: now + 600n,
+    });
+
+    const makerBalBefore = (
+      await vault.account.accountBalance.fetch(balancePda(maker.publicKey))
+    ).balance.toNumber();
+    const takerBalBefore = (
+      await vault.account.accountBalance.fetch(balancePda(taker.publicKey))
+    ).balance.toNumber();
+    const poolBefore = (
+      await vault.account.accountBalance.fetch(balancePda(engineAuthorityPda))
+    ).balance.toNumber();
+
+    await buildAndSendSettleOne(
+      m,
+      t,
+      50_000n * PRICE_PRECISION,
+      1n * SIZE_PRECISION,
+    );
+
+    // Both positions shrank by 1 BTC; surviving margin stays locked.
+    const mPos = await engine.account.position.fetch(positionPda(maker.publicKey));
+    assert.equal(mPos.size.toString(), (-200_000_000).toString(), "maker -3 -> -2");
+    assert.equal(mPos.margin.toString(), "5000000000", "maker surviving margin $5000");
+    const tPos = await engine.account.position.fetch(positionPda(taker.publicKey));
+    assert.equal(tPos.size.toString(), (100_000_000).toString(), "taker +2 -> +1");
+    assert.equal(tPos.margin.toString(), "2500000000", "taker surviving margin $2500");
+
+    // Freed margin ($2500/side) settles back, minus fees (maker 2 bps = $10,
+    // taker 6 bps = $30 on the $50K notional; taker sell does not increase skew
+    // -> no dynamic spread extra).
+    const expectedFreed = 2_500_000_000;
+    const makerBalAfter = (
+      await vault.account.accountBalance.fetch(balancePda(maker.publicKey))
+    ).balance.toNumber();
+    const takerBalAfter = (
+      await vault.account.accountBalance.fetch(balancePda(taker.publicKey))
+    ).balance.toNumber();
+    const poolAfter = (
+      await vault.account.accountBalance.fetch(balancePda(engineAuthorityPda))
+    ).balance.toNumber();
+
+    assert.equal(makerBalAfter - makerBalBefore, expectedFreed - 10_000_000,
+      "maker credited freed margin minus 2 bps fee");
+    assert.equal(takerBalAfter - takerBalBefore, expectedFreed - 30_000_000,
+      "taker credited freed margin minus 6 bps fee");
+    assert.equal(poolBefore - poolAfter, 2 * expectedFreed,
+      "engine pool paid out both sides' freed margin");
+  });
 });

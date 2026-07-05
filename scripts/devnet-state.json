@@ -1,8 +1,59 @@
 {
-  "_note": "Reset 2026-06 for fresh re-deploy under deployer J1GMec (old 4gAdo7R admin key lost). Empty usdcMint forces devnet-init to create a new mint owned by J1GMec.",
-  "usdcMint": "",
-  "markets": [],
-  "deployer": "",
-  "initializedAt": "",
-  "steps": {}
+  "_note": "Live devnet state as of the 2026-06-30 deploy (11 programs, 34-step init, 0 failures). Deployer = 4gAdo7R (the earlier 'key lost' note was wrong — the keypair was found; the SBPFv3 'deploy blocked' premise was also a misdiagnosis, see scripts/check-sbpfv3.sh).",
+  "usdcMint": "B2LJ35rfJbQmhBwdhpzovUfLM5WhFgUNSYVxtDQ8CPnQ",
+  "markets": [
+    {
+      "symbol": "BTC-USD",
+      "marketId": "4254432d55534400000000000000000000000000000000000000000000000000",
+      "oracle": "HovQMDrbAgAYPCmHVSrezcSmkMtXSSUsLDFANExrZh2J"
+    },
+    {
+      "symbol": "SOL-USD",
+      "marketId": "534f4c2d55534400000000000000000000000000000000000000000000000000",
+      "oracle": "J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVFvy"
+    },
+    {
+      "symbol": "ETH-USD",
+      "marketId": "4554482d55534400000000000000000000000000000000000000000000000000",
+      "oracle": "EdVCmQ9FSPcVe5YySXDPCRmc8aDQLKJ9xvYBMZPie1Vw"
+    }
+  ],
+  "deployer": "4gAdo7R69XgZJ2QazB1N2o21nfY2gjto9KijUDzjg6kv",
+  "initializedAt": "2026-07-01T02:39:39.091Z",
+  "steps": {
+    "perp_vault.initialize": "ok",
+    "oracle_router.initialize": "ok",
+    "perp_engine.initialize": "ok",
+    "sur_timelock.initialize": "ok",
+    "a2a_darkpool.initialize": "ok",
+    "liquidator.initialize": "ok",
+    "insurance_fund.initialize": "ok",
+    "auto_deleveraging.initialize": "ok",
+    "collateral_manager.initialize": "ok",
+    "trading_vault.initialize": "ok",
+    "order_settlement.initialize": "ok",
+    "vault.set_operator.engine_authority": "ok",
+    "vault.set_operator.insurance_fund_authority": "ok",
+    "vault.set_operator.collateral_manager_authority": "ok",
+    "vault.set_operator.trading_vault_authority": "ok",
+    "vault.set_operator.order_settlement_authority": "ok",
+    "vault.set_operator.a2a_darkpool_authority": "ok",
+    "engine.set_operator.liquidator_authority": "ok",
+    "engine.set_operator.adl_authority": "ok",
+    "engine.set_operator.order_settlement_authority": "ok",
+    "engine.set_operator.trading_vault_authority": "ok",
+    "engine.set_operator.a2a_darkpool_authority": "ok",
+    "engine.set_operator.oracle_authority": "ok",
+    "engine.set_operator.deployer (v1 direct)": "ok",
+    "oracle_router.set_operator.deployer": "ok",
+    "perp_engine.bootstrap_engine_pool": "ok",
+    "insurance_fund.bootstrap_insurance_pool": "ok",
+    "engine.add_market.BTC-USD": "ok",
+    "engine.add_market.SOL-USD": "ok",
+    "engine.add_market.ETH-USD": "ok",
+    "engine.update_mark_price.BTC-USD": "ok",
+    "engine.update_mark_price.SOL-USD": "ok",
+    "engine.update_mark_price.ETH-USD": "ok",
+    "mint_test_usdc": "ok"
+  }
 }

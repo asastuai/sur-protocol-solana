@@ -37,4 +37,19 @@ pub enum TimelockError {
 
     #[msg("Math overflow")]
     MathOverflow,
+
+    #[msg("Caller is not the pending owner")]
+    NotPendingOwner,
+
+    #[msg("tx_hash does not bind the queued payload (target, instruction_hash, accounts_hash)")]
+    InvalidTxHash,
+
+    #[msg("Dispatched target program does not match the queued target")]
+    InvalidTarget,
+
+    #[msg("Dispatched instruction data does not match the queued instruction_hash")]
+    InstructionHashMismatch,
+
+    #[msg("Dispatched accounts do not match the queued accounts_hash")]
+    AccountsHashMismatch,
 }

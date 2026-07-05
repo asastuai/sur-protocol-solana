@@ -2,7 +2,10 @@ use anchor_lang::prelude::*;
 
 use crate::errors::TradingVaultError;
 use crate::events::VaultTradeExecuted;
-use crate::instructions::cpi_util::{invoke_engine_close_position, invoke_engine_open_position};
+use crate::instructions::cpi_util::{
+    invoke_engine_close_position, invoke_engine_open_position, invoke_engine_reduce_position,
+    read_position_size,
+};
 use crate::instructions::equity::compute_vault_equity;
 use crate::instructions::fees::check_drawdown;
 use crate::state::*;
@@ -106,27 +109,75 @@ pub(crate) fn manager_open_position<'info>(
         return Ok(());
     }
 
-    invoke_engine_open_position(
-        &ctx.accounts.perp_engine_program,
-        &ctx.accounts.perp_engine_config,
-        &ctx.accounts.engine_market,
-        &ctx.accounts.position,
-        &ctx.accounts.vault.to_account_info(),
-        &ctx.accounts.engine_operator_account,
-        &ctx.accounts.authority,
-        &ctx.accounts.system_program.to_account_info(),
-        // v0.3.1 wiring: forward vault accounts so engine's margin-lock CPI fires.
-        // src_balance = vault PDA's own perp_vault.AccountBalance (vault is the trader).
-        &ctx.accounts.engine_authority,
-        &ctx.accounts.perp_vault_program,
-        &ctx.accounts.perp_vault_config,
-        &ctx.accounts.engine_vault_operator,
-        &ctx.accounts.vault_balance,
-        &ctx.accounts.engine_pool_balance,
-        size_delta,
-        fill_price,
-        auth_seeds,
-    )?;
+    // Routing (stranded-margin High fix): a delta that shrinks or flips the
+    // vault's existing position must settle the freed margin + realized PnL
+    // back to vault_balance — open_position only moves value INBOUND:
+    //   fresh open / same-sign increase -> open_position
+    //   exact full close               -> close_position
+    //   partial reduce or flip         -> reduce_position
+    let cur_size = read_position_size(&ctx.accounts.position);
+    let new_size = cur_size
+        .checked_add(size_delta)
+        .ok_or(TradingVaultError::MathOverflow)?;
+
+    if cur_size == 0 || (cur_size > 0) == (size_delta > 0) {
+        invoke_engine_open_position(
+            &ctx.accounts.perp_engine_program,
+            &ctx.accounts.perp_engine_config,
+            &ctx.accounts.engine_market,
+            &ctx.accounts.position,
+            &ctx.accounts.vault.to_account_info(),
+            &ctx.accounts.engine_operator_account,
+            &ctx.accounts.authority,
+            &ctx.accounts.system_program.to_account_info(),
+            // v0.3.1 wiring: forward vault accounts so engine's margin-lock CPI fires.
+            // src_balance = vault PDA's own perp_vault.AccountBalance (vault is the trader).
+            &ctx.accounts.engine_authority,
+            &ctx.accounts.perp_vault_program,
+            &ctx.accounts.perp_vault_config,
+            &ctx.accounts.engine_vault_operator,
+            &ctx.accounts.vault_balance,
+            &ctx.accounts.engine_pool_balance,
+            size_delta,
+            fill_price,
+            auth_seeds,
+        )?;
+    } else if new_size == 0 {
+        invoke_engine_close_position(
+            &ctx.accounts.perp_engine_program,
+            &ctx.accounts.perp_engine_config,
+            &ctx.accounts.engine_market,
+            &ctx.accounts.position,
+            &ctx.accounts.engine_operator_account,
+            &ctx.accounts.authority,
+            &ctx.accounts.engine_authority,
+            &ctx.accounts.perp_vault_program,
+            &ctx.accounts.perp_vault_config,
+            &ctx.accounts.engine_vault_operator,
+            &ctx.accounts.vault_balance,
+            &ctx.accounts.engine_pool_balance,
+            fill_price,
+            auth_seeds,
+        )?;
+    } else {
+        invoke_engine_reduce_position(
+            &ctx.accounts.perp_engine_program,
+            &ctx.accounts.perp_engine_config,
+            &ctx.accounts.engine_market,
+            &ctx.accounts.position,
+            &ctx.accounts.engine_operator_account,
+            &ctx.accounts.authority,
+            &ctx.accounts.engine_authority,
+            &ctx.accounts.perp_vault_program,
+            &ctx.accounts.perp_vault_config,
+            &ctx.accounts.engine_vault_operator,
+            &ctx.accounts.vault_balance,
+            &ctx.accounts.engine_pool_balance,
+            size_delta,
+            fill_price,
+            auth_seeds,
+        )?;
+    }
 
     emit!(VaultTradeExecuted {
         vault_id: ctx.accounts.vault.id,

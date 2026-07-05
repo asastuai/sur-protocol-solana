@@ -243,6 +243,90 @@ pub fn invoke_engine_open_position<'info>(
 }
 
 // ============================================================
+//  perp_engine.reduce_position CPI
+// ============================================================
+// Same account shape as close_position (engine_config, market, position,
+// operator_account, operator signer + 6 vault remaining_accounts) but takes
+// (size_delta, fill_price) and settles only the CLOSED DELTA outbound —
+// the voluntary-reduce/flip path (stranded-margin High fix).
+
+#[allow(clippy::too_many_arguments)]
+pub fn invoke_engine_reduce_position<'info>(
+    perp_engine_program: &UncheckedAccount<'info>,
+    engine_config: &UncheckedAccount<'info>,
+    engine_market: &UncheckedAccount<'info>,
+    position: &UncheckedAccount<'info>,
+    engine_operator_account: &UncheckedAccount<'info>,
+    authority: &UncheckedAccount<'info>,
+    // ---- engine vault remaining_accounts (v0.3.1 wiring) ----
+    engine_authority: &UncheckedAccount<'info>,
+    vault_program: &UncheckedAccount<'info>,
+    vault_config: &UncheckedAccount<'info>,
+    engine_vault_operator: &UncheckedAccount<'info>,
+    src_balance: &UncheckedAccount<'info>, // trader_balance (freed margin + PnL settle here)
+    engine_pool_balance: &UncheckedAccount<'info>,
+    size_delta: i64,
+    fill_price: u64,
+    auth_seeds: &[&[u8]],
+) -> Result<()> {
+    let mut data = Vec::with_capacity(8 + 8 + 8);
+    data.extend_from_slice(&anchor_discriminator("reduce_position"));
+    data.extend_from_slice(&size_delta.to_le_bytes());
+    data.extend_from_slice(&fill_price.to_le_bytes());
+
+    let ix = Instruction {
+        program_id: perp_engine_program.key(),
+        accounts: vec![
+            AccountMeta::new_readonly(engine_config.key(), false),
+            AccountMeta::new(engine_market.key(), false),
+            AccountMeta::new(position.key(), false),
+            AccountMeta::new_readonly(engine_operator_account.key(), false),
+            AccountMeta::new_readonly(authority.key(), true),
+            // ---- engine remaining_accounts (order: reduce_position.rs file header) ----
+            AccountMeta::new_readonly(engine_authority.key(), false),
+            AccountMeta::new_readonly(vault_program.key(), false),
+            AccountMeta::new_readonly(vault_config.key(), false),
+            AccountMeta::new_readonly(engine_vault_operator.key(), false),
+            AccountMeta::new(src_balance.key(), false),
+            AccountMeta::new(engine_pool_balance.key(), false),
+        ],
+        data,
+    };
+
+    invoke_signed(
+        &ix,
+        &[
+            engine_config.to_account_info(),
+            engine_market.to_account_info(),
+            position.to_account_info(),
+            engine_operator_account.to_account_info(),
+            authority.to_account_info(),
+            // remaining
+            engine_authority.to_account_info(),
+            vault_program.to_account_info(),
+            vault_config.to_account_info(),
+            engine_vault_operator.to_account_info(),
+            src_balance.to_account_info(),
+            engine_pool_balance.to_account_info(),
+            // program last
+            perp_engine_program.to_account_info(),
+        ],
+        &[auth_seeds],
+    )
+    .map_err(Into::into)
+}
+
+/// Raw read of a perp_engine `Position.size`: i64 LE at byte offset 73
+/// (8 disc + 1 bump + 32 market_id + 32 trader). Returns 0 when the account
+/// is not yet initialized — no position, so the trade is a fresh open.
+pub fn read_position_size(position: &UncheckedAccount) -> i64 {
+    match position.try_borrow_data() {
+        Ok(data) if data.len() >= 81 => i64::from_le_bytes(data[73..81].try_into().unwrap()),
+        _ => 0,
+    }
+}
+
+// ============================================================
 //  perp_engine.close_position CPI
 // ============================================================
 // account order (per perp_engine::instructions::close_position::ClosePosition):

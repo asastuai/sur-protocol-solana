@@ -55,4 +55,7 @@ pub enum EngineError {
 
     #[msg("Math overflow")]
     MathOverflow,
+
+    #[msg("Not a reduce (open/increase via open_position, full close via close_position)")]
+    NotAReduce,
 }

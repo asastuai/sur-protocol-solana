@@ -87,7 +87,7 @@ pub(crate) fn handler(
     // ---- H-9: 24h rolling daily cap (Sol:174-180) ----
     let clock = Clock::get()?;
     let now = clock.unix_timestamp;
-    if now >= cfg.daily_reward_reset_timestamp + ONE_DAY_SECS {
+    if now >= cfg.daily_reward_reset_timestamp.saturating_add(ONE_DAY_SECS) {
         cfg.daily_keeper_rewards_paid = 0;
         cfg.daily_reward_reset_timestamp = now;
     }
