@@ -622,4 +622,132 @@ describe("a2a_darkpool", () => {
     const intent = await program.account.intent.fetch(intentPda(intentId));
     assert.deepEqual(intent.status, { open: {} });
   });
+
+  // ============================================================
+  // REDUCE ROUTING — stranded-margin High fix
+  // ============================================================
+  // After the first settle: intentCreator +1 BTC long, responder -1 BTC short
+  // (both margin $2500). A counter-trade of 0.5 BTC reduces BOTH sides at once.
+  // Before the routing fix this went through engine.open_position, which only
+  // locks margin inbound — the freed $1250/side stayed stranded in engine_pool.
+  // Now each side routes to engine.reduce_position and settles the freed
+  // margin (PnL 0 at unchanged price) back to its vault balance.
+  it("reduce trade routes to engine.reduce_position and settles freed margin to both sides", async () => {
+    const intentId = new anchor.BN(3);
+    const responseId = new anchor.BN(3);
+
+    // intentCreator (long) SELLs 0.5 BTC -> buyer = responder (short, reducing),
+    // seller = intentCreator (long, reducing).
+    await program.methods
+      .postIntent(
+        Array.from(marketIdBtc),
+        false,                                // SELL
+        new anchor.BN(0.5 * 100_000_000),     // 0.5 BTC
+        new anchor.BN(49_800 * 1_000_000),
+        new anchor.BN(50_200 * 1_000_000),
+        new anchor.BN(3600),
+        ctxCommitmentA,
+      )
+      .accounts({
+        config: configPda,
+        intent: intentPda(intentId),
+        reputation: reputationPda(intentCreator.publicKey),
+        agent: intentCreator.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([intentCreator])
+      .rpc();
+
+    await program.methods
+      .postResponse(
+        new anchor.BN(50_000 * 1_000_000),    // same price -> realized PnL 0
+        new anchor.BN(600),
+        ctxCommitmentB,
+      )
+      .accounts({
+        config: configPda,
+        intent: intentPda(intentId),
+        response: responsePda(responseId),
+        reputation: reputationPda(responder.publicKey),
+        responder: responder.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([responder])
+      .rpc();
+
+    const creatorBefore = (await vault.account.accountBalance.fetch(
+      balancePda(intentCreator.publicKey),
+    )).balance.toNumber();
+    const responderBefore = (await vault.account.accountBalance.fetch(
+      balancePda(responder.publicKey),
+    )).balance.toNumber();
+    const poolBefore = (await vault.account.accountBalance.fetch(
+      balancePda(engineAuthorityPda),
+    )).balance.toNumber();
+
+    await program.methods
+      .acceptAndSettle()
+      .accounts({
+        config: configPda,
+        freshnessConfig: freshnessConfigPda,
+        intent: intentPda(intentId),
+        response: responsePda(responseId),
+        intentCreatorReputation: reputationPda(intentCreator.publicKey),
+        responderReputation: reputationPda(responder.publicKey),
+        intentCreator: intentCreator.publicKey,
+        darkpoolAuthority: darkpoolAuthorityPda,
+        // engine — buyer side is the responder for a SELL intent
+        perpEngineProgram: engine.programId,
+        engineConfig: engineConfigPda,
+        engineMarket: engineMarketPda,
+        buyerPosition: positionPda(responder.publicKey),
+        sellerPosition: positionPda(intentCreator.publicKey),
+        buyerTrader: responder.publicKey,
+        sellerTrader: intentCreator.publicKey,
+        engineOperatorAccount: engineOperatorPda(darkpoolAuthorityPda),
+        engineAuthority: engineAuthorityPda,
+        engineVaultOperator: vaultOperatorPda(engineAuthorityPda),
+        enginePoolBalance: balancePda(engineAuthorityPda),
+        // vault
+        perpVaultProgram: vault.programId,
+        vaultConfig: vaultConfigPda,
+        vaultOperatorAccount: vaultOperatorPda(darkpoolAuthorityPda),
+        buyerBalance: balancePda(responder.publicKey),
+        sellerBalance: balancePda(intentCreator.publicKey),
+        feeRecipientBalance: balancePda(feeRecipient.publicKey),
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([intentCreator])
+      .rpc();
+
+    // Positions reduced on both sides.
+    const creatorPos = await engine.account.position.fetch(positionPda(intentCreator.publicKey));
+    assert.equal(creatorPos.size.toString(), (0.5 * 100_000_000).toString(),
+      "intentCreator long reduced 1 -> 0.5");
+    assert.equal(creatorPos.margin.toString(), "1250000000", "surviving margin $1250");
+    const responderPos = await engine.account.position.fetch(positionPda(responder.publicKey));
+    assert.equal(responderPos.size.toString(), (-0.5 * 100_000_000).toString(),
+      "responder short reduced -1 -> -0.5");
+
+    // Freed margin settles OUT to each side: $1250 back, minus the $7.50 fee
+    // (notional 0.5 * $50K = $25K at 3 bps).
+    const expectedFreed = 1_250_000_000;
+    const expectedFee = 7_500_000;
+    const creatorAfter = (await vault.account.accountBalance.fetch(
+      balancePda(intentCreator.publicKey),
+    )).balance.toNumber();
+    const responderAfter = (await vault.account.accountBalance.fetch(
+      balancePda(responder.publicKey),
+    )).balance.toNumber();
+    const poolAfter = (await vault.account.accountBalance.fetch(
+      balancePda(engineAuthorityPda),
+    )).balance.toNumber();
+
+    assert.equal(creatorAfter, creatorBefore + expectedFreed - expectedFee,
+      "intentCreator credited freed margin minus fee");
+    assert.equal(responderAfter, responderBefore + expectedFreed - expectedFee,
+      "responder credited freed margin minus fee");
+    assert.equal(poolBefore - poolAfter, 2 * expectedFreed,
+      "engine pool paid out both sides' freed margin");
+  });
 });

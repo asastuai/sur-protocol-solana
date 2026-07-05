@@ -477,6 +477,54 @@ describe("trading_vault", () => {
     assert.equal(pos.entryPrice.toString(), (50_000n * PRICE_PRECISION).toString());
   });
 
+  it("manager reduce routes to engine.reduce_position and settles freed margin", async () => {
+    // Position: 0.01 BTC long, margin $25. Reduce by half at the same price:
+    // PnL = 0, surviving margin $12.50 -> freed $12.50 must return to the
+    // vault's balance (the stranded-margin High fix). Before the routing fix
+    // this went through open_position and returned nothing.
+    const before = await vault.account.accountBalance.fetch(balancePda(vaultPda));
+
+    await tv.methods
+      .managerOpenPosition(
+        Array.from(marketId),
+        new anchor.BN(-500_000), // reduce: -0.005 BTC against the 0.01 long
+        new anchor.BN(50_000n * PRICE_PRECISION),
+      )
+      .accounts({
+        config: tvConfigPda,
+        vault: vaultPda,
+        manager: manager.publicKey,
+        authority: tvAuthorityPda,
+        perpEngineProgram: engine.programId,
+        perpEngineConfig: engineConfigPda,
+        engineMarket: marketPda,
+        position: positionVaultPda,
+        engineOperatorAccount: perpEngineTvOperatorPda,
+        vaultBalance: balancePda(vaultPda),
+        // v0.3.1 wiring: engine_authority + its vault accounts
+        engineAuthority: engineAuthorityPda,
+        perpVaultProgram: vault.programId,
+        perpVaultConfig: perpVaultConfigPda,
+        engineVaultOperator: vaultOperatorPda(engineAuthorityPda),
+        enginePoolBalance: balancePda(engineAuthorityPda),
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([manager])
+      .rpc();
+
+    const pos = await engine.account.position.fetch(positionVaultPda);
+    assert.equal(pos.size.toString(), "500000"); // surviving 0.005 long
+    assert.equal(pos.margin.toString(), "12500000"); // $12.50 stays locked
+
+    const after = await vault.account.accountBalance.fetch(balancePda(vaultPda));
+    // freed margin $12.50 settled back (PnL 0 at unchanged price)
+    assert.equal(
+      after.amount.sub(before.amount).toString(),
+      "12500000",
+      "freed margin must settle back to the vault balance",
+    );
+  });
+
   it("manager closes the position via CPI", async () => {
     await tv.methods
       .managerClosePosition(
