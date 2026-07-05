@@ -518,6 +518,7 @@ describe("a2a_darkpool", () => {
         new anchor.BN(49_800 * 1_000_000),
         new anchor.BN(50_200 * 1_000_000),
         new anchor.BN(3600),
+        ctxCommitmentA,
       )
       .accounts({
         config: configPda,
@@ -558,7 +559,7 @@ describe("a2a_darkpool", () => {
       .rpc();
 
     await program.methods
-      .postResponse(new anchor.BN(50_000 * 1_000_000), new anchor.BN(600))
+      .postResponse(new anchor.BN(50_000 * 1_000_000), new anchor.BN(600), ctxCommitmentB)
       .accounts({
         config: configPda,
         intent: intentPda(intentId),
@@ -577,6 +578,7 @@ describe("a2a_darkpool", () => {
         .acceptAndSettle()
         .accounts({
           config: configPda,
+          freshnessConfig: freshnessConfigPda,
           intent: intentPda(intentId),
           response: responsePda(responseId),
           intentCreatorReputation: reputationPda(intentCreator.publicKey),

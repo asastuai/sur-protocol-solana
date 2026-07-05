@@ -519,7 +519,7 @@ describe("trading_vault", () => {
     const after = await vault.account.accountBalance.fetch(balancePda(vaultPda));
     // freed margin $12.50 settled back (PnL 0 at unchanged price)
     assert.equal(
-      after.amount.sub(before.amount).toString(),
+      after.balance.sub(before.balance).toString(),
       "12500000",
       "freed margin must settle back to the vault balance",
     );
