@@ -187,12 +187,24 @@ export function usePositionsBridge(
   markets: Market[],
 ): PositionsBridge {
   const { positions: onChain, loading, refetch } = useOpenPositions(trader);
+  // Per-market maintenance-margin bps from the on-chain Market accounts. The
+  // front-types Market[] passed in does NOT carry mmBps, so we read it from the
+  // raw MarketState here to compute a liq estimate that mirrors the SDK view.
+  const { markets: marketStates } = useMarkets();
 
   const markBySymbol = useMemo(() => {
     const map = new Map<string, number>();
     for (const m of markets) map.set(m.symbol, m.markPrice);
     return map;
   }, [markets]);
+
+  // Maintenance-margin bps by symbol, falling back to a flat 2.5% (250 bps)
+  // when a market hasn't been read yet — matches the protocol default.
+  const mmBpsBySymbol = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const m of marketStates) map.set(m.symbol, m.maintenanceMarginBps.toNumber());
+    return map;
+  }, [marketStates]);
 
   const bridged = useMemo(() => {
     const pdaById = new Map<string, PublicKey>();
@@ -214,13 +226,18 @@ export function usePositionsBridge(
       const notional = entry * sizeAbs;
       const leverage = margin > 0 ? Math.max(1, Math.round(notional / margin)) : 1;
 
-      // Display-only liq estimate (flat 2.5% maintenance margin). Not exact.
-      const mmRatio = 0.975;
+      // Display-only liq estimate. Mirrors the SDK view (perp-engine-view.ts
+      // getLiquidationPrice): maintenance margin is a fraction of NOTIONAL, not
+      // of margin. Using the real per-market mmBps when available, else a flat
+      // 250 bps (2.5% of notional). When margin <= maintMargin the position is
+      // already liquidatable → draw no line (0).
+      const mmBps = mmBpsBySymbol.get(symbol) ?? 250;
+      const maintMargin = notional * (mmBps / 10_000);
       const liquidationPrice =
-        sizeAbs > 0
+        sizeAbs > 0 && margin > maintMargin
           ? p.isLong
-            ? entry - (margin * mmRatio) / sizeAbs
-            : entry + (margin * mmRatio) / sizeAbs
+            ? entry - (margin - maintMargin) / sizeAbs
+            : entry + (margin - maintMargin) / sizeAbs
           : 0;
 
       return {
@@ -240,7 +257,7 @@ export function usePositionsBridge(
     });
 
     return { positions, pdaById, marketIdById };
-  }, [onChain, markBySymbol]);
+  }, [onChain, markBySymbol, mmBpsBySymbol]);
 
   return { ...bridged, loading, refetch };
 }
