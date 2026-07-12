@@ -239,10 +239,11 @@ pub(crate) fn handler(ctx: Context<AcceptAndSettle>) -> Result<()> {
 
     let buyer_size_delta: i64 = i64::try_from(size).map_err(|_| DarkPoolError::MathOverflow)?;
 
-    // ---- CPI #1: engine.open_position(buyer, +size, price) ----
-    // Forward vault accounts so engine's internal margin-lock CPI fires
-    // (v0.3.1 wiring; engine open_position.rs file header for order).
-    invoke_engine_open_position(
+    // ---- CPI #1: engine settle (buyer, +size, price) ----
+    // Routes through open/reduce/close so a buyer reducing an existing short
+    // gets freed margin + PnL settled (open_position alone strands them).
+    // Forward vault accounts so the engine's margin CPI fires (v0.3.1 wiring).
+    invoke_engine_position_delta(
         &ctx.accounts.perp_engine_program,
         &ctx.accounts.engine_config,
         &ctx.accounts.engine_market,
@@ -263,8 +264,8 @@ pub(crate) fn handler(ctx: Context<AcceptAndSettle>) -> Result<()> {
         auth_seeds,
     )?;
 
-    // ---- CPI #2: engine.open_position(seller, -size, price) ----
-    invoke_engine_open_position(
+    // ---- CPI #2: engine settle (seller, -size, price) ----
+    invoke_engine_position_delta(
         &ctx.accounts.perp_engine_program,
         &ctx.accounts.engine_config,
         &ctx.accounts.engine_market,
@@ -424,6 +425,197 @@ fn invoke_engine_open_position<'info>(
         &[auth_seeds],
     )
     .map_err(Into::into)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn invoke_engine_reduce_position<'info>(
+    perp_engine_program: &UncheckedAccount<'info>,
+    engine_config: &UncheckedAccount<'info>,
+    engine_market: &UncheckedAccount<'info>,
+    position: &UncheckedAccount<'info>,
+    engine_operator_account: &UncheckedAccount<'info>,
+    darkpool_authority: &UncheckedAccount<'info>,
+    engine_authority: &UncheckedAccount<'info>,
+    vault_program: &UncheckedAccount<'info>,
+    vault_config: &UncheckedAccount<'info>,
+    engine_vault_operator: &UncheckedAccount<'info>,
+    trader_balance: &UncheckedAccount<'info>,
+    engine_pool_balance: &UncheckedAccount<'info>,
+    size_delta: i64,
+    fill_price: u64,
+    auth_seeds: &[&[u8]],
+) -> Result<()> {
+    let mut data = Vec::with_capacity(8 + 8 + 8);
+    data.extend_from_slice(&anchor_discriminator("reduce_position"));
+    data.extend_from_slice(&size_delta.to_le_bytes());
+    data.extend_from_slice(&fill_price.to_le_bytes());
+
+    let ix = Instruction {
+        program_id: perp_engine_program.key(),
+        accounts: vec![
+            AccountMeta::new_readonly(engine_config.key(), false),
+            AccountMeta::new(engine_market.key(), false),
+            AccountMeta::new(position.key(), false),
+            AccountMeta::new_readonly(engine_operator_account.key(), false),
+            AccountMeta::new_readonly(darkpool_authority.key(), true), // operator (signer)
+            AccountMeta::new_readonly(engine_authority.key(), false),
+            AccountMeta::new_readonly(vault_program.key(), false),
+            AccountMeta::new_readonly(vault_config.key(), false),
+            AccountMeta::new_readonly(engine_vault_operator.key(), false),
+            AccountMeta::new(trader_balance.key(), false),
+            AccountMeta::new(engine_pool_balance.key(), false),
+        ],
+        data,
+    };
+
+    invoke_signed(
+        &ix,
+        &[
+            engine_config.to_account_info(),
+            engine_market.to_account_info(),
+            position.to_account_info(),
+            engine_operator_account.to_account_info(),
+            darkpool_authority.to_account_info(),
+            engine_authority.to_account_info(),
+            vault_program.to_account_info(),
+            vault_config.to_account_info(),
+            engine_vault_operator.to_account_info(),
+            trader_balance.to_account_info(),
+            engine_pool_balance.to_account_info(),
+            perp_engine_program.to_account_info(),
+        ],
+        &[auth_seeds],
+    )
+    .map_err(Into::into)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn invoke_engine_close_position<'info>(
+    perp_engine_program: &UncheckedAccount<'info>,
+    engine_config: &UncheckedAccount<'info>,
+    engine_market: &UncheckedAccount<'info>,
+    position: &UncheckedAccount<'info>,
+    engine_operator_account: &UncheckedAccount<'info>,
+    darkpool_authority: &UncheckedAccount<'info>,
+    engine_authority: &UncheckedAccount<'info>,
+    vault_program: &UncheckedAccount<'info>,
+    vault_config: &UncheckedAccount<'info>,
+    engine_vault_operator: &UncheckedAccount<'info>,
+    trader_balance: &UncheckedAccount<'info>,
+    engine_pool_balance: &UncheckedAccount<'info>,
+    fill_price: u64,
+    auth_seeds: &[&[u8]],
+) -> Result<()> {
+    let mut data = Vec::with_capacity(8 + 8);
+    data.extend_from_slice(&anchor_discriminator("close_position"));
+    data.extend_from_slice(&fill_price.to_le_bytes());
+
+    let ix = Instruction {
+        program_id: perp_engine_program.key(),
+        accounts: vec![
+            AccountMeta::new_readonly(engine_config.key(), false),
+            AccountMeta::new(engine_market.key(), false),
+            AccountMeta::new(position.key(), false),
+            AccountMeta::new_readonly(engine_operator_account.key(), false),
+            AccountMeta::new_readonly(darkpool_authority.key(), true), // operator (signer)
+            AccountMeta::new_readonly(engine_authority.key(), false),
+            AccountMeta::new_readonly(vault_program.key(), false),
+            AccountMeta::new_readonly(vault_config.key(), false),
+            AccountMeta::new_readonly(engine_vault_operator.key(), false),
+            AccountMeta::new(trader_balance.key(), false),
+            AccountMeta::new(engine_pool_balance.key(), false),
+        ],
+        data,
+    };
+
+    invoke_signed(
+        &ix,
+        &[
+            engine_config.to_account_info(),
+            engine_market.to_account_info(),
+            position.to_account_info(),
+            engine_operator_account.to_account_info(),
+            darkpool_authority.to_account_info(),
+            engine_authority.to_account_info(),
+            vault_program.to_account_info(),
+            vault_config.to_account_info(),
+            engine_vault_operator.to_account_info(),
+            trader_balance.to_account_info(),
+            engine_pool_balance.to_account_info(),
+            perp_engine_program.to_account_info(),
+        ],
+        &[auth_seeds],
+    )
+    .map_err(Into::into)
+}
+
+// perp_engine Position: `size:i64` lives at byte offset 73; an unallocated
+// position (len 0) reads as 0 => a fresh open.
+fn read_engine_position_size(position: &UncheckedAccount) -> i64 {
+    match position.try_borrow_data() {
+        Ok(d) if d.len() >= 81 => {
+            let mut b = [0u8; 8];
+            b.copy_from_slice(&d[73..81]);
+            i64::from_le_bytes(b)
+        }
+        _ => 0,
+    }
+}
+
+// Route a size delta through the SETTLING engine path: open/increase ->
+// open_position, full close -> close_position, reduce/flip -> reduce_position.
+// open_position strands freed margin + realized PnL on a reduce (the High).
+#[allow(clippy::too_many_arguments)]
+fn invoke_engine_position_delta<'info>(
+    perp_engine_program: &UncheckedAccount<'info>,
+    engine_config: &UncheckedAccount<'info>,
+    engine_market: &UncheckedAccount<'info>,
+    position: &UncheckedAccount<'info>,
+    trader: &UncheckedAccount<'info>,
+    engine_operator_account: &UncheckedAccount<'info>,
+    darkpool_authority: &UncheckedAccount<'info>,
+    system_program: &AccountInfo<'info>,
+    engine_authority: &UncheckedAccount<'info>,
+    vault_program: &UncheckedAccount<'info>,
+    vault_config: &UncheckedAccount<'info>,
+    engine_vault_operator: &UncheckedAccount<'info>,
+    src_balance: &UncheckedAccount<'info>,
+    engine_pool_balance: &UncheckedAccount<'info>,
+    size_delta: i64,
+    fill_price: u64,
+    auth_seeds: &[&[u8]],
+) -> Result<()> {
+    let old_size = read_engine_position_size(position);
+    let new_size = old_size
+        .checked_add(size_delta)
+        .ok_or(DarkPoolError::MathOverflow)?;
+
+    let same_sign_increase = old_size != 0
+        && old_size.signum() == new_size.signum()
+        && new_size.unsigned_abs() > old_size.unsigned_abs();
+
+    if old_size == 0 || same_sign_increase {
+        invoke_engine_open_position(
+            perp_engine_program, engine_config, engine_market, position, trader,
+            engine_operator_account, darkpool_authority, system_program,
+            engine_authority, vault_program, vault_config, engine_vault_operator,
+            src_balance, engine_pool_balance, size_delta, fill_price, auth_seeds,
+        )
+    } else if new_size == 0 {
+        invoke_engine_close_position(
+            perp_engine_program, engine_config, engine_market, position,
+            engine_operator_account, darkpool_authority, engine_authority,
+            vault_program, vault_config, engine_vault_operator, src_balance,
+            engine_pool_balance, fill_price, auth_seeds,
+        )
+    } else {
+        invoke_engine_reduce_position(
+            perp_engine_program, engine_config, engine_market, position,
+            engine_operator_account, darkpool_authority, engine_authority,
+            vault_program, vault_config, engine_vault_operator, src_balance,
+            engine_pool_balance, size_delta, fill_price, auth_seeds,
+        )
+    }
 }
 
 #[allow(clippy::too_many_arguments)]

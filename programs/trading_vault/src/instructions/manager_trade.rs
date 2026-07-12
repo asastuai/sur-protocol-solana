@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::errors::TradingVaultError;
 use crate::events::VaultTradeExecuted;
-use crate::instructions::cpi_util::{invoke_engine_close_position, invoke_engine_open_position};
+use crate::instructions::cpi_util::{invoke_engine_close_position, invoke_engine_position_delta};
 use crate::instructions::equity::compute_vault_equity;
 use crate::instructions::fees::check_drawdown;
 use crate::state::*;
@@ -106,7 +106,7 @@ pub(crate) fn manager_open_position<'info>(
         return Ok(());
     }
 
-    invoke_engine_open_position(
+    invoke_engine_position_delta(
         &ctx.accounts.perp_engine_program,
         &ctx.accounts.perp_engine_config,
         &ctx.accounts.engine_market,

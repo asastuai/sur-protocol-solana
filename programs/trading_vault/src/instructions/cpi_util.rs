@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use crate::errors::TradingVaultError;
 use anchor_lang::solana_program::{
     hash::hashv,
     instruction::{AccountMeta, Instruction},
@@ -240,6 +241,143 @@ pub fn invoke_engine_open_position<'info>(
         &[auth_seeds],
     )
     .map_err(Into::into)
+}
+
+// ============================================================
+//  perp_engine.reduce_position CPI
+// ============================================================
+// account order (per perp_engine::instructions::reduce_position::ReducePosition):
+//   engine_config, market (mut), position (mut), operator_account, operator (signer)
+
+#[allow(clippy::too_many_arguments)]
+pub fn invoke_engine_reduce_position<'info>(
+    perp_engine_program: &UncheckedAccount<'info>,
+    engine_config: &UncheckedAccount<'info>,
+    engine_market: &UncheckedAccount<'info>,
+    position: &UncheckedAccount<'info>,
+    engine_operator_account: &UncheckedAccount<'info>,
+    authority: &UncheckedAccount<'info>,
+    engine_authority: &UncheckedAccount<'info>,
+    vault_program: &UncheckedAccount<'info>,
+    vault_config: &UncheckedAccount<'info>,
+    engine_vault_operator: &UncheckedAccount<'info>,
+    src_balance: &UncheckedAccount<'info>, // trader_balance (freed margin + PnL settle here)
+    engine_pool_balance: &UncheckedAccount<'info>,
+    size_delta: i64,
+    fill_price: u64,
+    auth_seeds: &[&[u8]],
+) -> Result<()> {
+    let mut data = Vec::with_capacity(8 + 8 + 8);
+    data.extend_from_slice(&anchor_discriminator("reduce_position"));
+    data.extend_from_slice(&size_delta.to_le_bytes());
+    data.extend_from_slice(&fill_price.to_le_bytes());
+
+    let ix = Instruction {
+        program_id: perp_engine_program.key(),
+        accounts: vec![
+            AccountMeta::new_readonly(engine_config.key(), false),
+            AccountMeta::new(engine_market.key(), false),
+            AccountMeta::new(position.key(), false),
+            AccountMeta::new_readonly(engine_operator_account.key(), false),
+            AccountMeta::new_readonly(authority.key(), true),
+            // ---- engine remaining_accounts (order: reduce_position.rs header) ----
+            AccountMeta::new_readonly(engine_authority.key(), false),
+            AccountMeta::new_readonly(vault_program.key(), false),
+            AccountMeta::new_readonly(vault_config.key(), false),
+            AccountMeta::new_readonly(engine_vault_operator.key(), false),
+            AccountMeta::new(src_balance.key(), false),
+            AccountMeta::new(engine_pool_balance.key(), false),
+        ],
+        data,
+    };
+
+    invoke_signed(
+        &ix,
+        &[
+            engine_config.to_account_info(),
+            engine_market.to_account_info(),
+            position.to_account_info(),
+            engine_operator_account.to_account_info(),
+            authority.to_account_info(),
+            engine_authority.to_account_info(),
+            vault_program.to_account_info(),
+            vault_config.to_account_info(),
+            engine_vault_operator.to_account_info(),
+            src_balance.to_account_info(),
+            engine_pool_balance.to_account_info(),
+            perp_engine_program.to_account_info(),
+        ],
+        &[auth_seeds],
+    )
+    .map_err(Into::into)
+}
+
+// perp_engine Position: `size:i64` at byte offset 73; unallocated (len 0) => 0.
+pub fn read_engine_position_size(position: &UncheckedAccount) -> i64 {
+    match position.try_borrow_data() {
+        Ok(d) if d.len() >= 81 => {
+            let mut b = [0u8; 8];
+            b.copy_from_slice(&d[73..81]);
+            i64::from_le_bytes(b)
+        }
+        _ => 0,
+    }
+}
+
+// Route a size delta through the SETTLING engine path. open_position only locks
+// margin inbound, so a reduce/flip/close routed there strands freed margin +
+// realized PnL in engine_pool (the confirmed High).
+#[allow(clippy::too_many_arguments)]
+pub fn invoke_engine_position_delta<'info>(
+    perp_engine_program: &UncheckedAccount<'info>,
+    engine_config: &UncheckedAccount<'info>,
+    engine_market: &UncheckedAccount<'info>,
+    position: &UncheckedAccount<'info>,
+    trader: &AccountInfo<'info>,
+    engine_operator_account: &UncheckedAccount<'info>,
+    authority: &UncheckedAccount<'info>,
+    system_program: &AccountInfo<'info>,
+    engine_authority: &UncheckedAccount<'info>,
+    vault_program: &UncheckedAccount<'info>,
+    vault_config: &UncheckedAccount<'info>,
+    engine_vault_operator: &UncheckedAccount<'info>,
+    src_balance: &UncheckedAccount<'info>,
+    engine_pool_balance: &UncheckedAccount<'info>,
+    size_delta: i64,
+    fill_price: u64,
+    auth_seeds: &[&[u8]],
+) -> Result<()> {
+    let old_size = read_engine_position_size(position);
+    let new_size = old_size
+        .checked_add(size_delta)
+        .ok_or(TradingVaultError::MathOverflow)?;
+
+    let same_sign_increase = old_size != 0
+        && old_size.signum() == new_size.signum()
+        && new_size.unsigned_abs() > old_size.unsigned_abs();
+
+    if old_size == 0 || same_sign_increase {
+        invoke_engine_open_position(
+            perp_engine_program, engine_config, engine_market, position, trader,
+            engine_operator_account, authority, system_program, engine_authority,
+            vault_program, vault_config, engine_vault_operator, src_balance,
+            engine_pool_balance, size_delta, fill_price, auth_seeds,
+        )
+    } else if new_size == 0 {
+        invoke_engine_close_position(
+            perp_engine_program, engine_config, engine_market, position,
+            engine_operator_account, authority, engine_authority, vault_program,
+            vault_config, engine_vault_operator, src_balance, engine_pool_balance,
+            fill_price, auth_seeds,
+        )
+    } else {
+        invoke_engine_reduce_position(
+            perp_engine_program, engine_config, engine_market, position,
+            engine_operator_account, authority, engine_authority, vault_program,
+            vault_config, engine_vault_operator, src_balance, engine_pool_balance,
+            size_delta, fill_price, auth_seeds,
+        )
+    }
 }
 
 // ============================================================

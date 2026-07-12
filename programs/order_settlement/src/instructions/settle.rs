@@ -418,7 +418,7 @@ fn settle_trade_inner(ctx: &mut Context<SettleOne>, trade: &MatchedTrade) -> Res
 
     // v0.3.1 wiring: forward engine_authority + vault accounts so engine's
     // margin-lock CPI fires from settle_one too. src_balance is per-side.
-    invoke_engine_open_position(
+    invoke_engine_position_delta(
         &ctx.accounts.perp_engine_program,
         &ctx.accounts.engine_config,
         &ctx.accounts.engine_market,
@@ -437,7 +437,7 @@ fn settle_trade_inner(ctx: &mut Context<SettleOne>, trade: &MatchedTrade) -> Res
         trade.execution_price,
         auth_seeds,
     )?;
-    invoke_engine_open_position(
+    invoke_engine_position_delta(
         &ctx.accounts.perp_engine_program,
         &ctx.accounts.engine_config,
         &ctx.accounts.engine_market,
