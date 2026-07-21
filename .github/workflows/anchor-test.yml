@@ -61,7 +61,9 @@ jobs:
           if ! command -v avm >/dev/null 2>&1; then
             cargo install --git https://github.com/coral-xyz/anchor avm --force
           fi
-          avm install "${ANCHOR_VERSION}"
+          # Build from source: avm >=1.1 rejects the prebuilt 0.31.1 binary for
+          # failing build-provenance attestation verification.
+          avm install "${ANCHOR_VERSION}" --from-source
           avm use "${ANCHOR_VERSION}"
           anchor --version
 
