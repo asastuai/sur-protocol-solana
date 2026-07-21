@@ -49,4 +49,7 @@ pub enum VaultError {
 
     #[msg("USDC mint mismatch")]
     UsdcMintMismatch,
+
+    #[msg("from and to balance accounts must differ")]
+    SameAccount,
 }

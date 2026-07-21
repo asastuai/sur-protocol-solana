@@ -153,7 +153,11 @@ pub(crate) fn handler(ctx: Context<LiquidatePosition>) -> Result<()> {
     let mut bad_debt: u64 = 0;
     let mut keeper_pubkey: Pubkey = Pubkey::default();
 
-    let has_vault_accounts = ctx.remaining_accounts.len() >= 7;
+    // HIGH fix (2026-07-21 audit): propagate the H-1 mandatory-settlement guard.
+    // A liquidation always distributes (keeper reward + insurance / bad-debt settle);
+    // never silently skip because the caller omitted the vault accounts.
+    require!(ctx.remaining_accounts.len() >= 7, EngineError::InvalidParam);
+    let has_vault_accounts = true;
 
     if effective_margin <= 0 {
         let bd = (-effective_margin) as u128;

@@ -103,7 +103,11 @@ pub(crate) fn handler(ctx: Context<ClosePosition>, fill_price: u64) -> Result<()
     position.last_updated = clock.unix_timestamp;
 
     // ---- v0.3 wiring #1: PnL settlement via perp_vault.internal_transfer ----
-    let has_vault_accounts = ctx.remaining_accounts.len() >= 6;
+    // HIGH fix (2026-07-21 audit): propagate the H-1 mandatory-settlement guard.
+    // A close always owes the trader released_margin +/- PnL; never silently skip
+    // settlement because the caller omitted the vault accounts (funds would strand).
+    require!(ctx.remaining_accounts.len() >= 6, EngineError::InvalidParam);
+    let has_vault_accounts = true;
     let auth_bump = cfg.authority_bump;
     let auth_seeds: &[&[u8]] = &[EngineConfig::AUTHORITY_SEED, std::slice::from_ref(&auth_bump)];
 

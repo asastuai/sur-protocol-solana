@@ -59,6 +59,15 @@ pub(crate) fn handler(ctx: Context<InternalTransfer>, amount: u64) -> Result<()>
     require!(!cfg.paused, VaultError::PausedError);
     require!(amount > 0, VaultError::ZeroAmount);
 
+    // CRITICAL-1 fix (2026-07-21 audit): reject aliased from == to. Anchor does not
+    // reject two `mut` account inputs that resolve to the same pubkey; a self-alias
+    // would MINT funds via last-write-wins serialization of the two deserialized copies.
+    require_keys_neq!(
+        ctx.accounts.from_balance.key(),
+        ctx.accounts.to_balance.key(),
+        VaultError::SameAccount
+    );
+
     let from = &mut ctx.accounts.from_balance;
     let to = &mut ctx.accounts.to_balance;
     require!(
