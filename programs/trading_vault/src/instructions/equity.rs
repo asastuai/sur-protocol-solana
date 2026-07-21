@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program_pack::Pack;
 
 use crate::errors::TradingVaultError;
+use crate::state::MAX_VAULT_MARKETS;
 
 // ============================================================
 //  Equity calculation (on-chain, via remaining_accounts)
@@ -96,6 +97,7 @@ pub fn compute_vault_equity<'info>(
     perp_vault_program: Pubkey,
     perp_engine_program: Pubkey,
     vault_pda: Pubkey,
+    registered_markets: &[u8],
 ) -> Result<u64> {
     let base: i128 = if vault_balance_acc.data_is_empty()
         || vault_balance_acc.owner == &solana_program::system_program::ID
@@ -106,6 +108,24 @@ pub fn compute_vault_equity<'info>(
     };
 
     require!(remaining.len() % 2 == 0, TradingVaultError::InvalidEquity);
+    let pair_count = remaining.len() / 2;
+    let registered_count = registered_markets.len() / 32;
+
+    // CRITICAL-1 fix (2026-07-21 audit): the passed (Position, Market) set must EXACTLY
+    // equal the vault's registered open-market set — no omissions (hide losing positions)
+    // and no duplicates (double-count winners). Either lets a depositor/withdrawer forge
+    // equity. Count-match + per-market membership + de-dup together force a bijection.
+    require!(
+        registered_count <= MAX_VAULT_MARKETS,
+        TradingVaultError::IncompletePositionSet
+    );
+    require!(
+        pair_count == registered_count,
+        TradingVaultError::IncompletePositionSet
+    );
+
+    let mut seen: [[u8; 32]; MAX_VAULT_MARKETS] = [[0u8; 32]; MAX_VAULT_MARKETS];
+    let mut seen_count = 0usize;
 
     let mut equity = base;
     let mut i = 0usize;
@@ -140,6 +160,22 @@ pub fn compute_vault_equity<'info>(
             &mdata[MARKET_MARKET_ID_OFFSET..MARKET_MARKET_ID_OFFSET + 32],
         );
         require!(pos_market_id == market_id, TradingVaultError::InvalidEquity);
+
+        // CRITICAL-1 fix: this market must be in the vault registry, and not already
+        // counted in this call (reject a duplicated winner).
+        let mut registered = false;
+        for k in 0..registered_count {
+            if &registered_markets[k * 32..k * 32 + 32] == &market_id[..] {
+                registered = true;
+                break;
+            }
+        }
+        require!(registered, TradingVaultError::UnregisteredPosition);
+        for s in 0..seen_count {
+            require!(seen[s] != market_id, TradingVaultError::DuplicatePosition);
+        }
+        seen[seen_count] = market_id;
+        seen_count += 1;
 
         let mut trader_bytes = [0u8; 32];
         trader_bytes.copy_from_slice(

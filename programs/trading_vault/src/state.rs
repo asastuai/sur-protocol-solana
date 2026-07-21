@@ -28,6 +28,10 @@ pub const DEFAULT_DRAWDOWN_COOLDOWN_SECS: i64 = 86_400;
 /// Solidity M-22: minimum first deposit = 1000 USDC (1000 * PRICE_PRECISION).
 pub const MIN_FIRST_DEPOSIT: u64 = 1_000_000_000;
 
+/// CRITICAL-1 fix (2026-07-21 audit): max distinct markets a vault can register in its
+/// equity position set. Bounds the account size and the accounts a caller must pass.
+pub const MAX_VAULT_MARKETS: usize = 16;
+
 // ============================================================
 //                    TRADING VAULT CONFIG (singleton PDA)
 // ============================================================
@@ -94,6 +98,13 @@ pub struct Vault {
     pub name: [u8; NAME_MAX_LEN],
     pub description_len: u16,
     pub description: [u8; DESCRIPTION_MAX_LEN],
+
+    /// CRITICAL-1 fix (2026-07-21 audit): registry of market_ids the vault has ever
+    /// opened a position in (add-only), stored as `open_markets_len` 32-byte chunks.
+    /// compute_vault_equity requires the caller to pass the canonical Position for
+    /// EVERY entry — closing the equity-set forgery (omit losers / duplicate winners).
+    pub open_markets_len: u8,
+    pub open_markets: [u8; 32 * MAX_VAULT_MARKETS],
 }
 
 impl Vault {
@@ -113,7 +124,30 @@ impl Vault {
         + 16 + 8
         + 8 + 8 + 8
         + 8 + 8
-        + 1 + NAME_MAX_LEN + 2 + DESCRIPTION_MAX_LEN;
+        + 1 + NAME_MAX_LEN + 2 + DESCRIPTION_MAX_LEN
+        + 1 + (32 * MAX_VAULT_MARKETS);
+
+    /// True if `id` is already in the open-market registry.
+    pub fn has_market(&self, id: &[u8; 32]) -> bool {
+        let len = self.open_markets_len as usize;
+        (0..len).any(|i| &self.open_markets[i * 32..i * 32 + 32] == &id[..])
+    }
+
+    /// Append `id` to the registry (add-only). Returns false if the cap is reached.
+    pub fn push_market(&mut self, id: [u8; 32]) -> bool {
+        let len = self.open_markets_len as usize;
+        if len >= MAX_VAULT_MARKETS {
+            return false;
+        }
+        self.open_markets[len * 32..len * 32 + 32].copy_from_slice(&id);
+        self.open_markets_len += 1;
+        true
+    }
+
+    /// The registered markets as `open_markets_len` contiguous 32-byte chunks.
+    pub fn registered_markets(&self) -> &[u8] {
+        &self.open_markets[..(self.open_markets_len as usize) * 32]
+    }
 }
 
 // ============================================================

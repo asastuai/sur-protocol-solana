@@ -67,4 +67,16 @@ pub enum TradingVaultError {
 
     #[msg("Math overflow")]
     MathOverflow,
+
+    #[msg("Position set does not match the vault's open-market registry")]
+    IncompletePositionSet,
+
+    #[msg("Duplicate position in the equity set")]
+    DuplicatePosition,
+
+    #[msg("Position market is not registered for this vault")]
+    UnregisteredPosition,
+
+    #[msg("Vault has reached the maximum number of markets")]
+    TooManyMarkets,
 }

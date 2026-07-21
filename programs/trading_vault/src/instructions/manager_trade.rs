@@ -100,6 +100,7 @@ pub(crate) fn manager_open_position<'info>(
         cfg.perp_vault_program,
         cfg.perp_engine_program,
         vault_pda,
+        ctx.accounts.vault.registered_markets(),
     )?;
     let breached = check_drawdown(&mut ctx.accounts.vault, equity, now)?;
     if breached {
@@ -177,6 +178,15 @@ pub(crate) fn manager_open_position<'info>(
             fill_price,
             auth_seeds,
         )?;
+    }
+
+    // CRITICAL-1 fix (2026-07-21 audit): register this market in the vault's equity
+    // registry (add-only) so deposits/withdrawals/drawdown must value the full set.
+    if !ctx.accounts.vault.has_market(&market_id) {
+        require!(
+            ctx.accounts.vault.push_market(market_id),
+            TradingVaultError::TooManyMarkets
+        );
     }
 
     emit!(VaultTradeExecuted {

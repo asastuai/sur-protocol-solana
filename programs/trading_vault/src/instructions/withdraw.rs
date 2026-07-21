@@ -98,6 +98,7 @@ pub(crate) fn handler<'info>(
         cfg.perp_vault_program,
         cfg.perp_engine_program,
         vault_pda,
+        ctx.accounts.vault.registered_markets(),
     )?;
 
     // Accrue management fee, then collect performance fee.

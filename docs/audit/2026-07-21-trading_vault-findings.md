@@ -1,6 +1,13 @@
 # trading_vault — Security Review Findings
 
-**Date:** 2026-07-21
+> **✅ REMEDIATED (2026-07-21):** CRITICAL-1 (equity-set forgery in `compute_vault_equity`) is
+> **fixed**. The `Vault` now carries an add-only registry of the market_ids it has opened
+> (`open_markets`, maintained in `manager_open_position`), and `compute_vault_equity` requires the
+> passed `(Position, Market)` set to be **exactly** that registry — enforcing count-match,
+> per-market registry membership, and de-duplication. This closes both omission (hiding losers) and
+> duplication (double-counting winners). Verified to compile (`anchor build`); a full `anchor test`
+> regression run is pending a non-Windows environment. HIGH-1 (unbound `depositor_balance`) and the
+> MEDIUM/LOW items remain open.
 **Scope:** `programs/trading_vault/` only (`deposit`, `withdraw`, `manager_open_position`, `manager_close_position`, `equity.rs`, `fees.rs`, `cpi_util.rs`, admin/vault_admin + `state.rs`)
 **Method:** Solana 6-pattern vulnerability review + manual fund-flow / equity-accounting / authority review + adversarial verification
 **Reviewer:** Claude (Opus), adversarial verifier pass

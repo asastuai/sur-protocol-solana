@@ -27,7 +27,7 @@ severities, and drafts a conservative self-funded bounty package.
 |---------|--------|
 | perp_vault CRITICAL-1 (alias-mint) | ✅ **Fixed** — `require_keys_neq!(from, to)` guard; compiles. |
 | perp_engine HIGH (close/liquidate silent skip) | ✅ **Fixed** — mandatory `require!(len >= 6/7)`; compiles. |
-| trading_vault CRITICAL-1 (equity-set forgery) | ⏳ **Open** — needs a position-registry design change (not a one-liner); do it with a working `anchor test` run. |
+| trading_vault CRITICAL-1 (equity-set forgery) | ✅ **Fixed** — added an add-only `open_markets` registry to `Vault`; `compute_vault_equity` now requires the passed position set to exactly match it (count + membership + de-dup). Compiles; regression run pending non-Windows CI. |
 | perp_vault HIGH-1 (operator no scoping) + all MEDIUM/LOW | ⏳ **Open** — gated on the section-3 trust-model decision; hardening pending. |
 
 The two cheap, verified fixes are applied and build-checked. Regression tests were converted from
