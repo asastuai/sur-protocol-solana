@@ -13,6 +13,11 @@ on:
 env:
   SOLANA_VERSION: v3.1.14   # match the version the repo builds with locally
   ANCHOR_VERSION: "0.31.1"
+  # Platform-tools that ships Rust >= 1.85 (edition2024). The default SBF toolchain
+  # for this Solana release is older (rust 1.79) and cannot parse edition2024 deps
+  # (crypto-common, toml_edit) that the dependency tree pulls in. v1.52 = rust 1.89,
+  # matching the local build.
+  TOOLS_VERSION: v1.52
 
 jobs:
   test:
@@ -84,5 +89,8 @@ jobs:
           solana-keygen new --no-bip39-passphrase --silent --outfile ~/.config/solana/id.json
           solana config set --keypair ~/.config/solana/id.json
 
+      - name: Build (pin SBF platform-tools to a Rust >= 1.85 toolchain)
+        run: anchor build -- --tools-version ${TOOLS_VERSION}
+
       - name: anchor test
-        run: anchor test
+        run: anchor test --skip-build
