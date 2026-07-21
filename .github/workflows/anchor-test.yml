@@ -89,6 +89,19 @@ jobs:
           solana-keygen new --no-bip39-passphrase --silent --outfile ~/.config/solana/id.json
           solana config set --keypair ~/.config/solana/id.json
 
+      - name: Pre-fetch platform-tools ${{ env.TOOLS_VERSION }} (Rust >= 1.85)
+        run: |
+          set -euo pipefail
+          dest="$HOME/.cache/solana/${TOOLS_VERSION}/platform-tools"
+          if [ ! -x "$dest/rust/bin/rustc" ]; then
+            mkdir -p "$HOME/.cache/solana/${TOOLS_VERSION}"
+            url="https://github.com/anza-xyz/platform-tools/releases/download/${TOOLS_VERSION}/platform-tools-linux-x86_64.tar.bz2"
+            echo "Downloading $url"
+            curl -sSfL "$url" -o /tmp/pt.tar.bz2
+            tar -xjf /tmp/pt.tar.bz2 -C "$HOME/.cache/solana/${TOOLS_VERSION}"
+          fi
+          "$dest/rust/bin/rustc" --version
+
       - name: Build (pin SBF platform-tools to a Rust >= 1.85 toolchain)
         run: anchor build -- --tools-version ${TOOLS_VERSION}
 
