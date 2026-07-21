@@ -94,11 +94,12 @@ jobs:
           set -euo pipefail
           dest="$HOME/.cache/solana/${TOOLS_VERSION}/platform-tools"
           if [ ! -x "$dest/rust/bin/rustc" ]; then
-            mkdir -p "$HOME/.cache/solana/${TOOLS_VERSION}"
+            mkdir -p "$dest"
             url="https://github.com/anza-xyz/platform-tools/releases/download/${TOOLS_VERSION}/platform-tools-linux-x86_64.tar.bz2"
             echo "Downloading $url"
             curl -sSfL "$url" -o /tmp/pt.tar.bz2
-            tar -xjf /tmp/pt.tar.bz2 -C "$HOME/.cache/solana/${TOOLS_VERSION}"
+            # tarball contains rust/, llvm/, ... at its root -> extract INTO platform-tools/
+            tar -xjf /tmp/pt.tar.bz2 -C "$dest"
           fi
           "$dest/rust/bin/rustc" --version
 
