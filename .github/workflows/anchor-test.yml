@@ -103,7 +103,15 @@ jobs:
           fi
           "$dest/rust/bin/rustc" --version
 
-      - name: Build (uses the pre-fetched v1.52 platform-tools by default)
+      - name: Point rustup 'solana' toolchain at v1.52 (Anchor IDL build uses it)
+        run: |
+          set -euo pipefail
+          rust_root="$HOME/.cache/solana/${TOOLS_VERSION}/platform-tools/rust"
+          rustup toolchain link solana "$rust_root"
+          rustup run solana rustc --version
+          cargo +solana --version
+
+      - name: Build (SBF via cargo-build-sbf v1.52, IDL via the linked solana toolchain)
         run: anchor build
 
       - name: anchor test
