@@ -103,8 +103,8 @@ jobs:
           fi
           "$dest/rust/bin/rustc" --version
 
-      - name: Build (pin SBF platform-tools to a Rust >= 1.85 toolchain)
-        run: anchor build -- --tools-version ${TOOLS_VERSION}
+      - name: Build (uses the pre-fetched v1.52 platform-tools by default)
+        run: anchor build
 
       - name: anchor test
         run: anchor test --skip-build
